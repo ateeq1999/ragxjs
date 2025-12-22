@@ -1,12 +1,12 @@
 // Server exports
-export { createServer, startServer } from "./app.ts";
-export type { ServerOptions } from "./app.ts";
+export { createServer, startServer } from "./app";
+export type { ServerOptions } from "./app";
 
 // Registry exports
-export { AgentRegistry } from "./registry.ts";
+export { AgentRegistry } from "./registry";
 
 // Route exports
-export { createChatRoutes } from "./routes/chat.ts";
-export { createIngestRoutes } from "./routes/ingest.ts";
-export { createSearchRoutes } from "./routes/search.ts";
-export { createHealthRoutes } from "./routes/health.ts";
+export { createChatRoutes } from "./routes/chat";
+export { createIngestRoutes } from "./routes/ingest";
+export { createSearchRoutes } from "./routes/search";
+export { createHealthRoutes } from "./routes/health";

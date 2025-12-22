@@ -6,11 +6,11 @@ import { RAGEngine } from "@ragx/core";
 import { createEmbeddingProvider } from "@ragx/embeddings";
 import { createLLMProvider } from "@ragx/llm";
 import { createVectorStore } from "@ragx/vectordb";
-import { AgentRegistry } from "./registry.ts";
-import { createChatRoutes } from "./routes/chat.ts";
-import { createHealthRoutes } from "./routes/health.ts";
-import { createIngestRoutes } from "./routes/ingest.ts";
-import { createSearchRoutes } from "./routes/search.ts";
+import { AgentRegistry } from "./registry";
+import { createChatRoutes } from "./routes/chat";
+import { createHealthRoutes } from "./routes/health";
+import { createIngestRoutes } from "./routes/ingest";
+import { createSearchRoutes } from "./routes/search";
 
 /**
  * Server options
