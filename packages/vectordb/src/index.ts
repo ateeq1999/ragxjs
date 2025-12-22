@@ -37,6 +37,7 @@ export function createVectorStore(config: VectorStoreConfig): IVectorStore {
                 url: config.url,
                 authToken: config.apiKey || "",
                 table: config.collection || "ragx_embeddings",
+                distanceMetric: config.distanceMetric as any,
             });
         default:
             throw new Error(`Unsupported vector store provider: ${config.provider}`);

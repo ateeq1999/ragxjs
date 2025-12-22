@@ -42,6 +42,7 @@ export const VectorStoreConfigSchema = z.object({
     index: z.string().optional(),
     collection: z.string().optional(),
     namespace: z.string().optional(),
+    distanceMetric: z.enum(["cosine", "innerProduct", "chebyshev", "manhattan", "euclidean"]).optional().default("cosine"),
 });
 
 /**

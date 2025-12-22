@@ -2,15 +2,19 @@
 import { createClient, type Client } from "@libsql/client";
 import type { IVectorStore, DocumentChunk } from "@ragx/core";
 
+export type LibSQLDistanceMetric = "cosine" | "innerProduct" | "chebyshev" | "manhattan" | "squaredEuclidean" | "euclidean";
+
 export interface LibSQLConfig {
     url: string;
     authToken?: string;
     table?: string;
+    distanceMetric?: LibSQLDistanceMetric;
 }
 
 export class LibSQLStore implements IVectorStore {
     private client: Client;
     private table: string;
+    private distanceMetric: LibSQLDistanceMetric;
 
     constructor(config: LibSQLConfig) {
         this.client = createClient({
@@ -18,6 +22,7 @@ export class LibSQLStore implements IVectorStore {
             authToken: config.authToken || "",
         });
         this.table = config.table || "ragx_embeddings";
+        this.distanceMetric = config.distanceMetric || "cosine";
     }
 
     /**
@@ -102,7 +107,7 @@ export class LibSQLStore implements IVectorStore {
             if (!vectorBlob) return null;
 
             const rowVector = new Float32Array(vectorBlob);
-            const score = this.cosineSimilarity(targetVector, rowVector);
+            const score = this.calculateSimilarity(targetVector, rowVector);
 
             return {
                 score,
@@ -151,6 +156,24 @@ export class LibSQLStore implements IVectorStore {
         return { count, dimensions };
     }
 
+    private calculateSimilarity(a: Float32Array, b: Float32Array): number {
+        switch (this.distanceMetric) {
+            case "innerProduct":
+                return this.innerProduct(a, b);
+            case "chebyshev":
+                return 1 / (1 + this.chebyshev(a, b)); // Convert distance to similarity
+            case "manhattan":
+                return 1 / (1 + this.manhattan(a, b));
+            case "squaredEuclidean":
+                return 1 / (1 + this.squaredEuclidean(a, b));
+            case "euclidean":
+                return 1 / (1 + this.euclidean(a, b));
+            case "cosine":
+            default:
+                return this.cosineSimilarity(a, b);
+        }
+    }
+
     private cosineSimilarity(a: Float32Array, b: Float32Array): number {
         let p = 0;
         let p2 = 0;
@@ -164,5 +187,45 @@ export class LibSQLStore implements IVectorStore {
         }
         if (p2 === 0 || q2 === 0) return 0;
         return p / (Math.sqrt(p2) * Math.sqrt(q2));
+    }
+
+    private innerProduct(a: Float32Array, b: Float32Array): number {
+        let ans = 0;
+        for (let i = 0; i < a.length; i++) {
+            ans += (a[i] ?? 0) * (b[i] ?? 0);
+        }
+        return ans;
+    }
+
+    private chebyshev(a: Float32Array, b: Float32Array): number {
+        let max = 0;
+        for (let i = 0; i < a.length; i++) {
+            const aux = Math.abs((a[i] ?? 0) - (b[i] ?? 0));
+            if (max < aux) {
+                max = aux;
+            }
+        }
+        return max;
+    }
+
+    private manhattan(a: Float32Array, b: Float32Array): number {
+        let d = 0;
+        for (let i = 0; i < a.length; i++) {
+            d += Math.abs((a[i] ?? 0) - (b[i] ?? 0));
+        }
+        return d;
+    }
+
+    private squaredEuclidean(p: Float32Array, q: Float32Array): number {
+        let d = 0;
+        for (let i = 0; i < p.length; i++) {
+            const diff = (p[i] ?? 0) - (q[i] ?? 0);
+            d += diff * diff;
+        }
+        return d;
+    }
+
+    private euclidean(p: Float32Array, q: Float32Array): number {
+        return Math.sqrt(this.squaredEuclidean(p, q));
     }
 }
