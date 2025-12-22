@@ -128,7 +128,7 @@ export function createServer(options: ServerOptions): Elysia {
             };
         });
 
-    return app;
+    return app as unknown as Elysia;
 }
 
 /**
