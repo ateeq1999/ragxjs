@@ -258,14 +258,17 @@ export interface IRAGEngine {
     /**
      * Query the RAG system
      */
-    query(query: string, options?: { topK?: number; temperature?: number }): Promise<RAGResponse>;
+    query(
+        query: string,
+        options?: { topK?: number; temperature?: number; sessionId?: string },
+    ): Promise<RAGResponse>;
 
     /**
      * Query with streaming response
      */
     queryStream(
         query: string,
-        options?: { topK?: number; temperature?: number },
+        options?: { topK?: number; temperature?: number; sessionId?: string },
     ): AsyncGenerator<string, RAGResponse, unknown>;
 
     /**

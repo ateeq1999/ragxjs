@@ -6,6 +6,7 @@ import type { AgentRegistry } from "../registry";
  */
 interface ChatRequest {
     message: string;
+    sessionId?: string; // Support for conversation memory
     topK?: number;
     temperature?: number;
     stream?: boolean;
@@ -57,6 +58,8 @@ export function createChatRoutes(registry: AgentRegistry) {
                 };
             }
 
+            const sessionId = request.sessionId || "default-session";
+
             try {
                 // Handle streaming
                 if (request.stream) {
@@ -67,19 +70,17 @@ export function createChatRoutes(registry: AgentRegistry) {
                     // Create async generator for streaming
                     const stream = async function* () {
                         const generator = agent.queryStream(request.message, {
+                            sessionId,
                             ...(request.topK ? { topK: request.topK } : {}),
                             ...(request.temperature ? { temperature: request.temperature } : {}),
                         });
 
                         for await (const chunk of generator) {
-                            yield `data: ${JSON.stringify({ chunk })}\n\n`;
+                            yield `data: ${JSON.stringify({ type: "chunk", content: chunk })}\n\n`;
                         }
 
-                        // Send final response
-                        const result = await generator.return({ content: "", model: "" } as any);
-                        if (result.value) {
-                            yield `data: ${JSON.stringify({ done: true, response: result.value })}\n\n`;
-                        }
+                        // Send final response or "done" event
+                        yield `data: ${JSON.stringify({ type: "done" })}\n\n`;
                     };
 
                     return stream();
@@ -87,6 +88,7 @@ export function createChatRoutes(registry: AgentRegistry) {
 
                 // Non-streaming response
                 const response = await agent.query(request.message, {
+                    sessionId,
                     ...(request.topK ? { topK: request.topK } : {}),
                     ...(request.temperature ? { temperature: request.temperature } : {}),
                 });

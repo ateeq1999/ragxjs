@@ -101,6 +101,19 @@ export function createServer(options: ServerOptions): Elysia {
         .use(createIngestRoutes(registry))
         .use(createSearchRoutes(registry))
         .use(createHealthRoutes(registry, startTime))
+        // Authentication Middleware
+        .derive(({ request, set }) => {
+            const authConfig = config.server?.auth;
+            if (!authConfig || authConfig.type === "none") return {};
+
+            const apiKey = request.headers.get(authConfig.header || "Authorization");
+            if (!apiKey || apiKey !== authConfig.secret) {
+                set.status = 401;
+                throw new Error("Unauthorized: Invalid or missing API Key");
+            }
+
+            return { user: "authenticated" };
+        })
         // Error handling
         .onError(({ code, error, set }) => {
             console.error(`Error [${code}]:`, error);
