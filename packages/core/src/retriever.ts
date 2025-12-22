@@ -1,4 +1,4 @@
-import type { DocumentChunk, IEmbeddingProvider, IRetriever, IVectorStore, RetrievedDocument, IReranker } from "./interfaces";
+import type { DocumentChunk, IEmbeddingProvider, IRetriever, IVectorStore, RetrievedDocument, IReranker, IDocumentStore } from "./interfaces";
 import type { RetrievalConfig } from "@ragx/config";
 
 /**
@@ -10,6 +10,7 @@ export class Retriever implements IRetriever {
         private readonly embeddingProvider: IEmbeddingProvider,
         private readonly reranker?: IReranker,
         private readonly config?: RetrievalConfig,
+        private readonly docStore?: IDocumentStore,
     ) { }
 
     /**
@@ -58,7 +59,6 @@ export class Retriever implements IRetriever {
                 .filter(r => r.score >= scoreThreshold);
         }
 
-        // Filter by score threshold and format results (Standard Vector Search)
         const retrieved = results
             .filter((result) => result.score >= scoreThreshold)
             .map((result) => ({
@@ -68,6 +68,33 @@ export class Retriever implements IRetriever {
             }))
             .sort((a, b) => b.score - a.score)
             .slice(0, topK);
+
+        // Final Step: Parent Document Retrieval
+        if (this.docStore && retrieved.length > 0) {
+            const parentResults: RetrievedDocument[] = [];
+            const seenParentIds = new Set<string>();
+
+            for (const res of retrieved) {
+                const parentId = res.chunk.metadata.parentId as string || res.chunk.documentId;
+
+                if (seenParentIds.has(parentId)) continue;
+                seenParentIds.add(parentId);
+
+                const parentDoc = await this.docStore.get(parentId);
+                if (parentDoc) {
+                    parentResults.push({
+                        ...res,
+                        chunk: {
+                            ...res.chunk,
+                            content: parentDoc.content, // Return parent content
+                        }
+                    });
+                } else {
+                    parentResults.push(res);
+                }
+            }
+            return parentResults;
+        }
 
         return retrieved;
     }
@@ -88,5 +115,8 @@ export class Retriever implements IRetriever {
      */
     async deleteDocuments(documentIds: string[]): Promise<void> {
         await this.vectorStore.delete(documentIds);
+        if (this.docStore) {
+            await this.docStore.delete(documentIds);
+        }
     }
 }

@@ -52,6 +52,8 @@ export const RetrievalConfigSchema = z.object({
     strategy: z.enum(["vector", "keyword", "hybrid"]).optional().default("vector"),
     topK: z.number().int().min(1).max(100).optional().default(5),
     scoreThreshold: z.number().min(0).max(1).optional().default(0.7),
+    parentRetrieval: z.boolean().optional().default(false),
+    rerank: z.boolean().optional().default(false),
     rerankModel: z.string().optional(),
     multiQuery: z.boolean().optional().default(false),
 });

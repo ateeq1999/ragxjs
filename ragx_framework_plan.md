@@ -189,8 +189,8 @@ GET    /api/metrics                        # Prometheus metrics
 - ✅ **Reranking**: Cohere, Cross-encoder models
 - ✅ **Hybrid Search**: Semantic vector + keyword search (RRF)
 - ✅ **Query Decomposition**: Break complex queries into sub-queries
-- **Hypothetical Document Embeddings (HyDE)**
-- **Parent Document Retrieval**: Retrieve full context
+- ✅ **Hypothetical Document Embeddings (HyDE)**: Answer-based retrieval
+- ✅ **Parent Document Retrieval**: Retrieve full context (DocStore)
 - **Multi-query Retrieval**: ✅ Generate multiple query variations
 - **Contextual Compression**: Remove irrelevant parts
 

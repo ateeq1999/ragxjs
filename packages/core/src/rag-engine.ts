@@ -15,6 +15,8 @@ import type {
 import { QueryTransformer } from "./query-transformer";
 import { MemoryManager } from "./memory";
 import { Retriever } from "./retriever";
+import { MemoryDocumentStore } from "./document-store";
+import type { IDocumentStore } from "./interfaces";
 
 /**
  * RAG Engine implementation
@@ -26,6 +28,7 @@ export class RAGEngine implements IRAGEngine {
     private readonly contextBuilder: ContextBuilder;
     private readonly queryTransformer: QueryTransformer;
     private readonly memoryManager: MemoryManager;
+    private readonly docStore?: IDocumentStore;
 
     constructor(
         private readonly config: AgentConfig,
@@ -39,7 +42,18 @@ export class RAGEngine implements IRAGEngine {
             overlap: 50,
             minTokens: 100,
         });
-        this.retriever = new Retriever(vectorStore, embeddingProvider, reranker, config.retrieval);
+
+        if (config.retrieval?.parentRetrieval) {
+            this.docStore = new MemoryDocumentStore();
+        }
+
+        this.retriever = new Retriever(
+            vectorStore,
+            embeddingProvider,
+            reranker,
+            config.retrieval,
+            this.docStore
+        );
         this.contextBuilder = new ContextBuilder();
         this.queryTransformer = new QueryTransformer(llmProvider);
         this.memoryManager = new MemoryManager(config.memory);
@@ -98,9 +112,13 @@ export class RAGEngine implements IRAGEngine {
         const seenIds = new Set<string>();
 
         // We run retrievals in parallel for better performance
-        const retrievalPromises = searchQueries.map(q =>
-            this.retriever.retrieve(q, topK, scoreThreshold)
-        );
+        const retrievalPromises = searchQueries.map(async (q) => {
+            let retrievalQuery = q;
+            if (this.config.queryTransformation?.hyde) {
+                retrievalQuery = await this.queryTransformer.generateHypotheticalDocument(q);
+            }
+            return this.retriever.retrieve(retrievalQuery, topK, scoreThreshold);
+        });
 
         const results = await Promise.all(retrievalPromises);
 
@@ -228,9 +246,13 @@ export class RAGEngine implements IRAGEngine {
         const allDocs: RetrievedDocument[] = [];
         const seenIds = new Set<string>();
 
-        const retrievalPromises = searchQueries.map(q =>
-            this.retriever.retrieve(q, topK, scoreThreshold)
-        );
+        const retrievalPromises = searchQueries.map(async (q) => {
+            let retrievalQuery = q;
+            if (this.config.queryTransformation?.hyde) {
+                retrievalQuery = await this.queryTransformer.generateHypotheticalDocument(q);
+            }
+            return this.retriever.retrieve(retrievalQuery, topK, scoreThreshold);
+        });
 
         const results = await Promise.all(retrievalPromises);
 
@@ -314,7 +336,12 @@ export class RAGEngine implements IRAGEngine {
             const texts = chunks.map((chunk) => chunk.content);
             const embeddings = await this.embeddingProvider.embed(texts);
 
-            // Step 3: Add to vector store
+            // Step 3: Add to document store if enabled
+            if (this.docStore) {
+                await this.docStore.add([document]);
+            }
+
+            // Step 4: Add to vector store
             await this.retriever.addDocuments(chunks, embeddings);
 
             totalChunks += chunks.length;

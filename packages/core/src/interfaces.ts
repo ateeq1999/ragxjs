@@ -17,7 +17,10 @@ export interface DocumentChunk {
     /** Creation timestamp */
     createdAt: Date;
     /** Metadata */
-    metadata: Record<string, unknown>;
+    metadata: Record<string, unknown> & {
+        isChild?: boolean;
+        parentId?: string;
+    };
 }
 
 /**
@@ -119,9 +122,54 @@ export interface RAGContext {
  * Chat message interface
  */
 export interface ChatMessage {
-    role: "user" | "assistant" | "system";
+    role: "user" | "assistant" | "system" | "tool";
     content: string;
     timestamp: Date;
+    toolCalls?: ToolCall[];
+    toolCallId?: string; // For role: "tool"
+}
+
+/**
+ * Tool call from LLM
+ */
+export interface ToolCall {
+    id: string;
+    name: string;
+    arguments: Record<string, any>;
+}
+
+/**
+ * Tool definition
+ */
+export interface ITool {
+    name: string;
+    description: string;
+    parameters: Record<string, any>; // JSON Schema
+    execute(args: any): Promise<any>;
+}
+
+/**
+ * Tool registry interface
+ */
+export interface IToolRegistry {
+    register(tool: ITool): void;
+    getTool(name: string): ITool | undefined;
+    getAllTools(): ITool[];
+    executeTool(name: string, args: any): Promise<any>;
+}
+
+/**
+ * Document store interface for parent document retrieval
+ */
+export interface IDocumentStore {
+    /** Add documents to store */
+    add(documents: Document[]): Promise<void>;
+    /** Get document by ID */
+    get(id: string): Promise<Document | undefined>;
+    /** Delete documents by IDs */
+    delete(ids: string[]): Promise<void>;
+    /** Get all documents */
+    getAll?(): Promise<Document[]>;
 }
 
 /**
@@ -170,6 +218,8 @@ export interface IContextBuilder {
 export interface LLMResponse {
     /** Generated content */
     content: string;
+    /** Tool calls if model requested them */
+    toolCalls?: ToolCall[];
     /** Token usage */
     usage?: {
         promptTokens: number;
@@ -187,14 +237,25 @@ export interface ILLMProvider {
     /**
      * Generate a response
      */
-    generate(prompt: string, options?: { temperature?: number; maxTokens?: number }): Promise<LLMResponse>;
+    generate(
+        prompt: string,
+        options?: {
+            temperature?: number;
+            maxTokens?: number;
+            tools?: ITool[];
+        }
+    ): Promise<LLMResponse>;
 
     /**
      * Generate a streaming response
      */
     generateStream(
         prompt: string,
-        options?: { temperature?: number; maxTokens?: number },
+        options?: {
+            temperature?: number;
+            maxTokens?: number;
+            tools?: ITool[];
+        },
     ): AsyncGenerator<string, void, unknown>;
 }
 
