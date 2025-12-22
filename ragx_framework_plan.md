@@ -208,7 +208,7 @@ GET    /api/metrics                        # Prometheus metrics
 - **Cost Tracking**: Token usage and cost per request
 
 ### 3.4 Document Processing
-- **File Format Support**: PDF, DOCX, TXT, MD, HTML, CSV
+- **File Format Support**: ✅ PDF, DOCX, TXT, MD | [ ] HTML, CSV
 - **OCR Integration**: Extract text from images
 - **Table Extraction**: Preserve table structure
 - **Code Processing**: Language-specific chunking

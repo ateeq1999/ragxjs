@@ -40,6 +40,16 @@ export interface Document {
 export type ChunkingStrategy = "fixed" | "semantic" | "recursive";
 
 /**
+ * Document loader interface
+ */
+export interface IDocumentLoader {
+    /**
+     * Load a document from a source
+     */
+    load(): Promise<Document[]>;
+}
+
+/**
  * Document processor interface
  */
 export interface IDocumentProcessor {

@@ -6,6 +6,11 @@ import path from "node:path";
 import fs from "node:fs/promises";
 import { loadConfig } from "@ragx/config";
 import { startServer } from "@ragx/server";
+import { RAGEngine } from "@ragx/core";
+import { createEmbeddingProvider } from "@ragx/embeddings";
+import { createLLMProvider, createReranker } from "@ragx/llm";
+import { createVectorStore } from "@ragx/vectordb";
+import { DirectoryLoader } from "@ragx/document-loaders";
 
 const program = new Command();
 
@@ -136,7 +141,7 @@ program
         const spinner = ora("Initializing RAGx engine...").start();
         try {
             const configPath = path.resolve(process.cwd(), options.config);
-            const config = await loadConfig({ configPath });
+            const config = await loadConfig({ configPath }) as any;
 
             // Find the target agent
             const agentName = options.agent || config.agents[0]?.name;
@@ -147,35 +152,63 @@ program
                 process.exit(1);
             }
 
-            // In a real implementation we'd use the Registry to get the engine
-            // For now, let's log the attempt
-            spinner.text = `Processing documents from ${targetPath}...`;
+            spinner.text = `Initializing RAG engine for "${agentName}"...`;
 
-            const fullPath = path.resolve(process.cwd(), targetPath);
-            const stats = await fs.stat(fullPath);
-            const files: string[] = [];
+            // Prepare API keys
+            const apiKeys: Record<string, string> = {
+                openai: process.env.OPENAI_API_KEY || "",
+                anthropic: process.env.ANTHROPIC_API_KEY || "",
+                google: process.env.GOOGLE_API_KEY || "",
+                mistral: process.env.MISTRAL_API_KEY || "",
+                cohere: process.env.COHERE_API_KEY || "",
+            };
 
-            if (stats.isDirectory()) {
-                const dirFiles = await fs.readdir(fullPath);
-                for (const file of dirFiles) {
-                    const filePath = path.join(fullPath, file);
-                    const fStats = await fs.stat(filePath);
-                    if (fStats.isFile()) files.push(filePath);
-                }
-            } else {
-                files.push(fullPath);
+            const llmApiKey = apiKeys[agentConfig.model.provider];
+            const embeddingApiKey = apiKeys[agentConfig.embeddings.provider];
+
+            if (!llmApiKey || !embeddingApiKey) {
+                spinner.fail(chalk.red(`Missing API keys for agent "${agentName}". Ensure environment variables are set.`));
+                process.exit(1);
             }
 
-            spinner.text = `Ingesting ${files.length} files into "${agentName}"...`;
+            // Create providers
+            const llm = createLLMProvider(agentConfig.model, llmApiKey);
+            const embeddings = createEmbeddingProvider(agentConfig.embeddings, embeddingApiKey);
+            const vectorStore = createVectorStore(agentConfig.vectorStore);
 
-            // Placeholder for actual ingestion call
-            // const engine = AgentRegistry.getInstance().getAgent(agentName);
-            // await engine.ingest(...)
+            // Optional Reranker
+            let reranker: any;
+            if (agentConfig.retrieval?.rerankModel) {
+                const cohereApiKey = apiKeys["cohere"] || llmApiKey;
+                if (cohereApiKey) {
+                    reranker = createReranker(agentConfig.retrieval.rerankModel, cohereApiKey);
+                }
+            }
 
-            spinner.succeed(chalk.green(`Successfully ingested ${files.length} files into agent "${agentName}"`));
+            // Create RAG engine
+            const engine = new RAGEngine(agentConfig, llm, embeddings, vectorStore, reranker);
+
+            spinner.text = `Loading documents from ${targetPath}...`;
+
+            const fullPath = path.resolve(process.cwd(), targetPath);
+            const loader = new DirectoryLoader(fullPath);
+            const documents = await loader.load();
+
+            if (documents.length === 0) {
+                spinner.warn(chalk.yellow(`No supported documents found in ${targetPath}`));
+                return;
+            }
+
+            spinner.text = `Ingesting ${documents.length} documents into "${agentName}"...`;
+            spinner.start();
+
+            const result = await engine.ingest(documents);
+
+            spinner.succeed(chalk.green(`Successfully ingested ${result.processed} documents (${result.chunks} chunks) into agent "${agentName}"`));
         } catch (error) {
             spinner.fail(chalk.red("Ingestion failed"));
             console.error(error);
+            process.exit(1);
         }
     });
 

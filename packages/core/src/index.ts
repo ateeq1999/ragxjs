@@ -17,7 +17,8 @@ export {
     IReranker,
     IRAGEngine,
     ChunkingStrategy,
-    IDocumentProcessor
+    IDocumentProcessor,
+    IDocumentLoader
 } from "./interfaces";
 
 // Document processor

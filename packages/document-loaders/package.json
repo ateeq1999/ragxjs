@@ -1,0 +1,15 @@
+{
+    "name": "@ragx/document-loaders",
+    "version": "0.1.0",
+    "type": "module",
+    "main": "src/index.ts",
+    "dependencies": {
+        "@ragx/core": "workspace:*",
+        "pdf-parse": "^1.1.1",
+        "mammoth": "^1.6.0"
+    },
+    "devDependencies": {
+        "@types/pdf-parse": "^1.1.4",
+        "bun-types": "latest"
+    }
+}
