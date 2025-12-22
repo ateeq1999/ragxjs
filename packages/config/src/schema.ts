@@ -83,6 +83,15 @@ export const EndpointsConfigSchema = z.object({
 });
 
 /**
+ * Query transformation configuration schema
+ */
+export const QueryTransformationConfigSchema = z.object({
+    rewrite: z.boolean().optional().default(false),
+    expand: z.boolean().optional().default(false),
+    maxExpansions: z.number().int().min(1).max(10).optional().default(3),
+});
+
+/**
  * Agent configuration schema
  */
 export const AgentConfigSchema = z
@@ -100,6 +109,7 @@ export const AgentConfigSchema = z
         retrieval: RetrievalConfigSchema.optional(),
         memory: MemoryConfigSchema.optional(),
         tools: z.array(ToolConfigSchema).optional(),
+        queryTransformation: QueryTransformationConfigSchema.optional(),
         endpoints: EndpointsConfigSchema.optional(),
     })
     .strict();
@@ -194,6 +204,7 @@ export type RetrievalConfig = z.infer<typeof RetrievalConfigSchema>;
 export type MemoryConfig = z.infer<typeof MemoryConfigSchema>;
 export type ToolConfig = z.infer<typeof ToolConfigSchema>;
 export type EndpointsConfig = z.infer<typeof EndpointsConfigSchema>;
+export type QueryTransformationConfig = z.infer<typeof QueryTransformationConfigSchema>;
 export type AgentConfig = z.infer<typeof AgentConfigSchema>;
 export type CorsConfig = z.infer<typeof CorsConfigSchema>;
 export type RateLimitConfig = z.infer<typeof RateLimitConfigSchema>;

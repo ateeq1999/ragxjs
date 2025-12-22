@@ -8,7 +8,9 @@ import type {
     IRAGEngine,
     IVectorStore,
     RAGResponse,
+    RetrievedDocument,
 } from "./interfaces";
+import { QueryTransformer } from "./query-transformer";
 import { Retriever } from "./retriever";
 
 /**
@@ -19,6 +21,7 @@ export class RAGEngine implements IRAGEngine {
     private readonly documentProcessor: DocumentProcessor;
     private readonly retriever: Retriever;
     private readonly contextBuilder: ContextBuilder;
+    private readonly queryTransformer: QueryTransformer;
 
     constructor(
         private readonly config: AgentConfig,
@@ -34,6 +37,7 @@ export class RAGEngine implements IRAGEngine {
         });
         this.retriever = new Retriever(vectorStore, embeddingProvider);
         this.contextBuilder = new ContextBuilder();
+        this.queryTransformer = new QueryTransformer(llmProvider);
     }
 
     /**
@@ -47,8 +51,53 @@ export class RAGEngine implements IRAGEngine {
         const temperature = options?.temperature || this.config.model.temperature || 0.7;
         const scoreThreshold = this.config.retrieval?.scoreThreshold || 0.7;
 
-        // Step 1: Retrieve relevant documents
-        const retrievedDocs = await this.retriever.retrieve(query, topK, scoreThreshold);
+        // Step 1: Query Transformation
+        let searchQueries = [query];
+
+        if (this.config.queryTransformation?.rewrite) {
+            const rewritten = await this.queryTransformer.rewrite(query);
+            // Replace original if rewritten (single query mode)
+            // Or maybe keep both? Standard practice is usually to use the better query. 
+            // Let's use rewritten for now as the "better" version.
+            searchQueries = [rewritten];
+        }
+
+        if (this.config.queryTransformation?.expand) {
+            // Expansion adds more queries
+            const expanded = await this.queryTransformer.expand(
+                searchQueries[0] || query,
+                this.config.queryTransformation.maxExpansions
+            );
+            searchQueries = expanded;
+        }
+
+        // Step 2: Retrieve relevant documents (Hybrid/Multi-query)
+        // We'll search for all queries and deduplicate
+        const allDocs: RetrievedDocument[] = [];
+        const seenIds = new Set<string>();
+
+        // We run retrievals in parallel for better performance
+        const retrievalPromises = searchQueries.map(q =>
+            this.retriever.retrieve(q, topK, scoreThreshold)
+        );
+
+        const results = await Promise.all(retrievalPromises);
+
+        for (const docList of results) {
+            for (const doc of docList) {
+                if (!seenIds.has(doc.chunk.id)) {
+                    seenIds.add(doc.chunk.id);
+                    allDocs.push(doc);
+                }
+            }
+        }
+
+        // If using expansion, we might have too many docs, maybe re-rank or just take topK * 2?
+        // For now, let's just sort by score again (naive fusion) and take unique top K*2 to provide broad context
+        // But since scores across different queries might not be comparable without advanced fusion (RRF),
+        // we'll stick to a simple deduplication and keeping high variance.
+        // Let's enforce topK limit globally for the context builder to avoid flooding
+        const retrievedDocs = allDocs.sort((a, b) => b.score - a.score).slice(0, topK * 2);
 
         // Step 2: Check if we have sufficient context
         if (retrievedDocs.length === 0) {
@@ -112,8 +161,42 @@ export class RAGEngine implements IRAGEngine {
         const temperature = options?.temperature || this.config.model.temperature || 0.7;
         const scoreThreshold = this.config.retrieval?.scoreThreshold || 0.7;
 
-        // Step 1: Retrieve relevant documents
-        const retrievedDocs = await this.retriever.retrieve(query, topK, scoreThreshold);
+        // Step 1: Query Transformation
+        let searchQueries = [query];
+
+        if (this.config.queryTransformation?.rewrite) {
+            const rewritten = await this.queryTransformer.rewrite(query);
+            searchQueries = [rewritten];
+        }
+
+        if (this.config.queryTransformation?.expand) {
+            const expanded = await this.queryTransformer.expand(
+                searchQueries[0] || query,
+                this.config.queryTransformation.maxExpansions
+            );
+            searchQueries = expanded;
+        }
+
+        // Step 2: Retrieve relevant documents (Hybrid/Multi-query)
+        const allDocs: RetrievedDocument[] = [];
+        const seenIds = new Set<string>();
+
+        const retrievalPromises = searchQueries.map(q =>
+            this.retriever.retrieve(q, topK, scoreThreshold)
+        );
+
+        const results = await Promise.all(retrievalPromises);
+
+        for (const docList of results) {
+            for (const doc of docList) {
+                if (!seenIds.has(doc.chunk.id)) {
+                    seenIds.add(doc.chunk.id);
+                    allDocs.push(doc);
+                }
+            }
+        }
+
+        const retrievedDocs = allDocs.sort((a, b) => b.score - a.score).slice(0, topK * 2);
 
         // Step 2: Check if we have sufficient context
         if (retrievedDocs.length === 0) {
