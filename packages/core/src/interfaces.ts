@@ -106,6 +106,35 @@ export interface RAGContext {
 }
 
 /**
+ * Chat message interface
+ */
+export interface ChatMessage {
+    role: "user" | "assistant" | "system";
+    content: string;
+    timestamp: Date;
+}
+
+/**
+ * Memory manager interface
+ */
+export interface IMemoryManager {
+    /**
+     * Add a message to the conversation history
+     */
+    addMessage(sessionId: string, message: ChatMessage): Promise<void>;
+
+    /**
+     * Get conversation history
+     */
+    getHistory(sessionId: string): Promise<ChatMessage[]>;
+
+    /**
+     * Clear conversation history
+     */
+    clearHistory(sessionId: string): Promise<void>;
+}
+
+/**
  * Context builder interface
  */
 export interface IContextBuilder {

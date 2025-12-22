@@ -9,8 +9,10 @@ import type {
     IVectorStore,
     RAGResponse,
     RetrievedDocument,
+    ChatMessage,
 } from "./interfaces";
 import { QueryTransformer } from "./query-transformer";
+import { MemoryManager } from "./memory";
 import { Retriever } from "./retriever";
 
 /**
@@ -22,6 +24,7 @@ export class RAGEngine implements IRAGEngine {
     private readonly retriever: Retriever;
     private readonly contextBuilder: ContextBuilder;
     private readonly queryTransformer: QueryTransformer;
+    private readonly memoryManager: MemoryManager;
 
     constructor(
         private readonly config: AgentConfig,
@@ -38,6 +41,7 @@ export class RAGEngine implements IRAGEngine {
         this.retriever = new Retriever(vectorStore, embeddingProvider);
         this.contextBuilder = new ContextBuilder();
         this.queryTransformer = new QueryTransformer(llmProvider);
+        this.memoryManager = new MemoryManager(config.memory);
     }
 
     /**
@@ -45,16 +49,26 @@ export class RAGEngine implements IRAGEngine {
      */
     async query(
         query: string,
-        options?: { topK?: number; temperature?: number },
+        options?: { topK?: number; temperature?: number; sessionId?: string },
     ): Promise<RAGResponse> {
         const topK = options?.topK || this.config.retrieval?.topK || 5;
         const temperature = options?.temperature || this.config.model.temperature || 0.7;
         const scoreThreshold = this.config.retrieval?.scoreThreshold || 0.7;
+        const sessionId = options?.sessionId;
+
+        // Step 0: Get History
+        let history: ChatMessage[] = [];
+        if (sessionId) {
+            history = await this.memoryManager.getHistory(sessionId);
+        }
 
         // Step 1: Query Transformation
         let searchQueries = [query];
 
         if (this.config.queryTransformation?.rewrite) {
+            // We pass history to rewrite if available
+            // Converting ChatMessage[] to string for simple history string in rewriter if needed
+            // For now passing plain query, assuming rewrite uses only last query or we enhance rewrite signature later
             const rewritten = await this.queryTransformer.rewrite(query);
             // Replace original if rewritten (single query mode)
             // Or maybe keep both? Standard practice is usually to use the better query. 
@@ -112,7 +126,7 @@ export class RAGEngine implements IRAGEngine {
         // Step 3: Build context and format prompt
         // Default context window to 4000 if not specified
         const maxContextTokens = 4000;
-        const context = this.contextBuilder.build(query, retrievedDocs, maxContextTokens);
+        const context = this.contextBuilder.build(query, retrievedDocs, maxContextTokens, history);
         const prompt = this.contextBuilder.formatPrompt(context);
 
         // Step 4: Generate response
@@ -138,6 +152,20 @@ export class RAGEngine implements IRAGEngine {
             };
         }
 
+        // Step 7: Save to memory
+        if (sessionId && isGrounded) {
+            await this.memoryManager.addMessage(sessionId, {
+                role: "user",
+                content: query,
+                timestamp: new Date(),
+            });
+            await this.memoryManager.addMessage(sessionId, {
+                role: "assistant",
+                content: response.content,
+                timestamp: new Date(),
+            });
+        }
+
         return {
             answer: response.content,
             sources: retrievedDocs.map((doc) => ({
@@ -155,11 +183,18 @@ export class RAGEngine implements IRAGEngine {
      */
     async *queryStream(
         query: string,
-        options?: { topK?: number; temperature?: number },
+        options?: { topK?: number; temperature?: number; sessionId?: string },
     ): AsyncGenerator<string, RAGResponse, unknown> {
         const topK = options?.topK || this.config.retrieval?.topK || 5;
         const temperature = options?.temperature || this.config.model.temperature || 0.7;
         const scoreThreshold = this.config.retrieval?.scoreThreshold || 0.7;
+        const sessionId = options?.sessionId;
+
+        // Step 0: Get History
+        let history: ChatMessage[] = [];
+        if (sessionId) {
+            history = await this.memoryManager.getHistory(sessionId);
+        }
 
         // Step 1: Query Transformation
         let searchQueries = [query];
@@ -212,7 +247,7 @@ export class RAGEngine implements IRAGEngine {
         // Step 3: Build context and format prompt
         // Default context window to 4000 if not specified
         const maxContextTokens = 4000;
-        const context = this.contextBuilder.build(query, retrievedDocs, maxContextTokens);
+        const context = this.contextBuilder.build(query, retrievedDocs, maxContextTokens, history);
         const prompt = this.contextBuilder.formatPrompt(context);
 
         // Step 4: Generate streaming response
@@ -227,6 +262,20 @@ export class RAGEngine implements IRAGEngine {
 
         // Step 5: Verify grounding
         const isGrounded = this.contextBuilder.verifyGrounding(fullResponse, context);
+
+        // Step 6: Save to memory
+        if (sessionId && isGrounded) {
+            await this.memoryManager.addMessage(sessionId, {
+                role: "user",
+                content: query,
+                timestamp: new Date(),
+            });
+            await this.memoryManager.addMessage(sessionId, {
+                role: "assistant",
+                content: fullResponse,
+                timestamp: new Date(),
+            });
+        }
 
         return {
             answer: fullResponse,
