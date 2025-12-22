@@ -1,4 +1,4 @@
-import type { ChunkingStrategy, Document, DocumentChunk, IDocumentProcessor } from "./interfaces.ts";
+import type { ChunkingStrategy, Document, DocumentChunk, IDocumentProcessor } from "./interfaces";
 
 /**
  * Chunking options

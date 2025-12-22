@@ -1,9 +1,9 @@
 // Schema exports
-export * from "./schema.ts";
+export * from "./schema";
 
 // Validator exports
-export { validateConfig, validateAgentName, hasDisabledAgents, getEnabledAgents, ConfigValidationError } from "./validator.ts";
+export { validateConfig, validateAgentName, hasDisabledAgents, getEnabledAgents, ConfigValidationError } from "./validator";
 
 // Loader exports
-export { loadConfig, loadConfigFromObject } from "./loader.ts";
-export type { LoaderOptions } from "./loader.ts";
+export { loadConfig, loadConfigFromObject } from "./loader";
+export type { LoaderOptions } from "./loader";

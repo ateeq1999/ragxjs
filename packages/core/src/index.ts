@@ -1,15 +1,15 @@
 // Core interfaces
-export * from "./interfaces.ts";
+export * from "./interfaces";
 
 // Document processor
-export { DocumentProcessor } from "./document-processor.ts";
-export type { ChunkingOptions } from "./document-processor.ts";
+export { DocumentProcessor } from "./document-processor";
+export type { ChunkingOptions } from "./document-processor";
 
 // Retriever
-export { Retriever } from "./retriever.ts";
+export { Retriever } from "./retriever";
 
 // Context builder
-export { ContextBuilder } from "./context-builder.ts";
+export { ContextBuilder } from "./context-builder";
 
 // RAG engine
-export { RAGEngine } from "./rag-engine.ts";
+export { RAGEngine } from "./rag-engine";

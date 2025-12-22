@@ -1,5 +1,5 @@
 import { Mistral } from "@mistralai/mistralai";
-import { BaseEmbeddingProvider } from "../base.ts";
+import { BaseEmbeddingProvider } from "../base";
 
 /**
  * Mistral embedding provider
@@ -29,7 +29,7 @@ export class MistralEmbeddings extends BaseEmbeddingProvider {
                 inputs: batch,
             });
 
-            return response.data.map((item) => item.embedding);
+            return response.data.map((item) => item.embedding || []);
         });
     }
 

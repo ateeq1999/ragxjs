@@ -1,7 +1,7 @@
 import type { EmbeddingsConfig } from "@ragx/config";
 import type { IEmbeddingProvider } from "@ragx/core";
-import { MistralEmbeddings } from "./providers/mistral.ts";
-import { OpenAIEmbeddings } from "./providers/openai.ts";
+import { MistralEmbeddings } from "./providers/mistral";
+import { OpenAIEmbeddings } from "./providers/openai";
 
 /**
  * Create embedding provider from configuration
@@ -29,6 +29,6 @@ export function createEmbeddingProvider(
 }
 
 // Re-export providers
-export { BaseEmbeddingProvider } from "./base.ts";
-export { OpenAIEmbeddings } from "./providers/openai.ts";
-export { MistralEmbeddings } from "./providers/mistral.ts";
+export { BaseEmbeddingProvider } from "./base";
+export { OpenAIEmbeddings } from "./providers/openai";
+export { MistralEmbeddings } from "./providers/mistral";

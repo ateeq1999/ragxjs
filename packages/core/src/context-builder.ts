@@ -1,4 +1,4 @@
-import type { IContextBuilder, RAGContext, RetrievedDocument } from "./interfaces.ts";
+import type { IContextBuilder, RAGContext, RetrievedDocument } from "./interfaces";
 
 /**
  * Context builder implementation
@@ -22,7 +22,7 @@ Do not use any prior knowledge or make assumptions beyond what is explicitly sta
         return {
             query,
             documents,
-            history,
+            ...(history ? { history } : {}),
             systemPrompt: this.systemPrompt || this.defaultSystemPrompt,
         };
     }

@@ -1,4 +1,4 @@
-import type { DocumentChunk, IEmbeddingProvider, IRetriever, IVectorStore, RetrievedDocument } from "./interfaces.ts";
+import type { DocumentChunk, IEmbeddingProvider, IRetriever, IVectorStore, RetrievedDocument } from "./interfaces";
 
 /**
  * Retriever implementation

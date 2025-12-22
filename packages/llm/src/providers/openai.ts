@@ -1,6 +1,5 @@
-import type { LLMResponse } from "@ragx/core";
 import OpenAI from "openai";
-import { BaseLLMProvider } from "../base.ts";
+import { BaseLLMProvider } from "../base";
 
 /**
  * OpenAI LLM provider
@@ -36,15 +35,9 @@ export class OpenAIProvider extends BaseLLMProvider {
             }
 
             return {
-                content: choice.message.content,
-                usage: completion.usage
-                    ? {
-                        promptTokens: completion.usage.prompt_tokens,
-                        completionTokens: completion.usage.completion_tokens,
-                        totalTokens: completion.usage.total_tokens,
-                    }
-                    : undefined,
+                content: choice.message.content || "",
                 model: completion.model,
+                ...(completion.usage ? { usage: completion.usage } : {}),
             };
         });
     }
@@ -59,8 +52,8 @@ export class OpenAIProvider extends BaseLLMProvider {
         const stream = await this.client.chat.completions.create({
             model: this.model,
             messages: [{ role: "user", content: prompt }],
-            temperature: options?.temperature ?? 0.7,
-            max_tokens: options?.maxTokens,
+            ...(options?.temperature ? { temperature: options.temperature } : {}),
+            ...(options?.maxTokens ? { max_tokens: options.maxTokens } : {}),
             stream: true,
         });
 

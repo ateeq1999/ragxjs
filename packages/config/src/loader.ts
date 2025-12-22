@@ -1,5 +1,6 @@
-import type { RagxConfig } from "./schema.ts";
-import { validateConfig } from "./validator.ts";
+import { watch } from "node:fs/promises";
+import type { RagxConfig } from "./schema";
+import { validateConfig } from "./validator";
 
 /**
  * Configuration loader options
@@ -63,10 +64,10 @@ export async function loadConfig(options: LoaderOptions = {}): Promise<RagxConfi
 
         // Setup file watcher if requested
         if (options.watch && options.onChange) {
-            const watcher = Bun.file(configPath).watch();
+            const watcher = watch(configPath);
             (async () => {
                 for await (const event of watcher) {
-                    if (event === "change") {
+                    if (event.eventType === "change") {
                         try {
                             const reloadedConfig = await loadConfig({ ...options, watch: false });
                             options.onChange?.(reloadedConfig);

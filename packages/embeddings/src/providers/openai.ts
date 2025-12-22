@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { BaseEmbeddingProvider } from "../base.ts";
+import { BaseEmbeddingProvider } from "../base";
 
 /**
  * OpenAI embedding provider

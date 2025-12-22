@@ -1,6 +1,6 @@
 import type { LLMResponse } from "@ragx/core";
 import { Mistral } from "@mistralai/mistralai";
-import { BaseLLMProvider } from "../base.ts";
+import { BaseLLMProvider } from "../base";
 
 /**
  * Mistral LLM provider
@@ -36,15 +36,17 @@ export class MistralProvider extends BaseLLMProvider {
             }
 
             return {
-                content: choice.message.content,
-                usage: completion.usage
-                    ? {
-                        promptTokens: completion.usage.promptTokens || 0,
-                        completionTokens: completion.usage.completionTokens || 0,
-                        totalTokens: completion.usage.totalTokens || 0,
-                    }
-                    : undefined,
+                content: (choice.message.content || "") as string,
                 model: completion.model || this.model,
+                ...(completion.usage
+                    ? {
+                        usage: {
+                            promptTokens: completion.usage.promptTokens || 0,
+                            completionTokens: completion.usage.completionTokens || 0,
+                            totalTokens: completion.usage.totalTokens || 0,
+                        },
+                    }
+                    : {}),
             };
         });
     }
@@ -64,10 +66,11 @@ export class MistralProvider extends BaseLLMProvider {
         });
 
         for await (const chunk of stream) {
-            const content = chunk.data.choices[0]?.delta?.content;
+            const content = (chunk.data.choices[0]?.delta?.content || "") as string;
             if (content) {
                 yield content;
             }
         }
     }
 }
+```

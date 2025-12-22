@@ -1,7 +1,7 @@
 import type { ModelConfig } from "@ragx/config";
 import type { ILLMProvider } from "@ragx/core";
-import { MistralProvider } from "./providers/mistral.ts";
-import { OpenAIProvider } from "./providers/openai.ts";
+import { MistralProvider } from "./providers/mistral";
+import { OpenAIProvider } from "./providers/openai";
 
 /**
  * Create LLM provider from configuration
@@ -18,6 +18,6 @@ export function createLLMProvider(config: ModelConfig, apiKey: string): ILLMProv
 }
 
 // Re-export providers
-export { BaseLLMProvider } from "./base.ts";
-export { OpenAIProvider } from "./providers/openai.ts";
-export { MistralProvider } from "./providers/mistral.ts";
+export { BaseLLMProvider } from "./base";
+export { OpenAIProvider } from "./providers/openai";
+export { MistralProvider } from "./providers/mistral";

@@ -1,6 +1,6 @@
 import type { AgentConfig } from "@ragx/config";
-import { ContextBuilder } from "./context-builder.ts";
-import { DocumentProcessor } from "./document-processor.ts";
+import { ContextBuilder } from "./context-builder";
+import { DocumentProcessor } from "./document-processor";
 import type {
     Document,
     IEmbeddingProvider,
@@ -8,8 +8,8 @@ import type {
     IRAGEngine,
     IVectorStore,
     RAGResponse,
-} from "./interfaces.ts";
-import { Retriever } from "./retriever.ts";
+} from "./interfaces";
+import { Retriever } from "./retriever";
 
 /**
  * RAG Engine implementation
@@ -24,7 +24,8 @@ export class RAGEngine implements IRAGEngine {
         private readonly config: AgentConfig,
         private readonly llmProvider: ILLMProvider,
         private readonly embeddingProvider: IEmbeddingProvider,
-        private readonly vectorStore: IVectorStore,
+        // private readonly vectorStore: IVectorStore, // Unused in this implementation but kept if needed for future
+        vectorStore: IVectorStore,
     ) {
         this.documentProcessor = new DocumentProcessor({
             maxTokens: 500,
@@ -65,7 +66,7 @@ export class RAGEngine implements IRAGEngine {
         // Step 4: Generate response
         const response = await this.llmProvider.generate(prompt, {
             temperature,
-            maxTokens: this.config.model.maxTokens,
+            ...(this.config.model.maxTokens ? { maxTokens: this.config.model.maxTokens } : {}),
         });
 
         // Step 5: Verify grounding
@@ -81,7 +82,7 @@ export class RAGEngine implements IRAGEngine {
                     score: doc.score,
                 })),
                 contextSufficient: false,
-                usage: response.usage,
+                ...(response.usage ? { usage: response.usage } : {}),
             };
         }
 
@@ -93,7 +94,7 @@ export class RAGEngine implements IRAGEngine {
                 score: doc.score,
             })),
             contextSufficient: true,
-            usage: response.usage,
+            ...(response.usage ? { usage: response.usage } : {}),
         };
     }
 
@@ -129,7 +130,7 @@ export class RAGEngine implements IRAGEngine {
         let fullResponse = "";
         for await (const chunk of this.llmProvider.generateStream(prompt, {
             temperature,
-            maxTokens: this.config.model.maxTokens,
+            ...(this.config.model.maxTokens ? { maxTokens: this.config.model.maxTokens } : {}),
         })) {
             fullResponse += chunk;
             yield chunk;

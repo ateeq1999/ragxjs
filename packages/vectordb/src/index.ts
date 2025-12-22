@@ -1,7 +1,7 @@
 import type { VectorStoreConfig } from "@ragx/config";
 import type { IVectorStore } from "@ragx/core";
-import { ChromaDB } from "./adapters/chroma.ts";
-import { MemoryVectorStore } from "./adapters/memory.ts";
+import { ChromaDB } from "./adapters/chroma";
+import { MemoryVectorStore } from "./adapters/memory";
 
 /**
  * Create vector store from configuration
@@ -24,5 +24,5 @@ export function createVectorStore(config: VectorStoreConfig): IVectorStore {
 }
 
 // Re-export adapters
-export { ChromaDB } from "./adapters/chroma.ts";
-export { MemoryVectorStore } from "./adapters/memory.ts";
+export { ChromaDB } from "./adapters/chroma";
+export { MemoryVectorStore } from "./adapters/memory";
