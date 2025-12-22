@@ -36,7 +36,7 @@ export const EmbeddingsConfigSchema = z.object({
  * Vector store configuration schema
  */
 export const VectorStoreConfigSchema = z.object({
-    provider: z.enum(["pinecone", "weaviate", "qdrant", "chroma", "milvus", "pgvector", "memory"]),
+    provider: z.enum(["pinecone", "weaviate", "qdrant", "chroma", "milvus", "pgvector", "memory", "libsql"]),
     url: z.string().url().optional(),
     apiKey: z.string().optional(),
     index: z.string().optional(),
