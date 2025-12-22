@@ -13,7 +13,7 @@ export class OpenAIEmbeddings extends BaseEmbeddingProvider {
         apiKey: string,
         options?: { model?: string; dimensions?: number; batchSize?: number },
     ) {
-        super({ batchSize: options?.batchSize });
+        super({ batchSize: options?.batchSize as number });
         this.client = new OpenAI({ apiKey });
         this.model = options?.model || "text-embedding-3-small";
         this.dimensions = options?.dimensions || 1536;

@@ -13,7 +13,7 @@ export class MistralEmbeddings extends BaseEmbeddingProvider {
         apiKey: string,
         options?: { model?: string; dimensions?: number; batchSize?: number },
     ) {
-        super({ batchSize: options?.batchSize });
+        super({ batchSize: options?.batchSize as number | undefined });
         this.client = new Mistral({ apiKey });
         this.model = options?.model || "mistral-embed";
         this.dimensions = options?.dimensions || 1024;

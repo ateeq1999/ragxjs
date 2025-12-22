@@ -1,3 +1,4 @@
+import type { LLMResponse } from "@ragx/core";
 import OpenAI from "openai";
 import { BaseLLMProvider } from "../base";
 
@@ -37,7 +38,15 @@ export class OpenAIProvider extends BaseLLMProvider {
             return {
                 content: choice.message.content || "",
                 model: completion.model,
-                ...(completion.usage ? { usage: completion.usage } : {}),
+                ...(completion.usage
+                    ? {
+                        usage: {
+                            promptTokens: completion.usage.prompt_tokens,
+                            completionTokens: completion.usage.completion_tokens,
+                            totalTokens: completion.usage.total_tokens,
+                        },
+                    }
+                    : {}),
             };
         });
     }
@@ -53,7 +62,7 @@ export class OpenAIProvider extends BaseLLMProvider {
             model: this.model,
             messages: [{ role: "user", content: prompt }],
             ...(options?.temperature ? { temperature: options.temperature } : {}),
-            ...(options?.maxTokens ? { max_tokens: options.maxTokens } : {}),
+            ...(options?.maxTokens ? { max_tokens: options.maxTokens as number } : {}),
             stream: true,
         });
 
