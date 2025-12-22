@@ -18,8 +18,9 @@
         "clean": "rm -rf dist"
     },
     "dependencies": {
-        "@ragx/core": "workspace:*",
+        "@pinecone-database/pinecone": "^6.1.3",
         "@ragx/config": "workspace:*",
+        "@ragx/core": "workspace:*",
         "chromadb": "^1.9.2"
     },
     "devDependencies": {

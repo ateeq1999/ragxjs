@@ -18,10 +18,12 @@
         "clean": "rm -rf dist"
     },
     "dependencies": {
-        "@ragx/core": "workspace:*",
+        "@anthropic-ai/sdk": "^0.71.2",
+        "@google/generative-ai": "^0.24.1",
+        "@mistralai/mistralai": "^1.3.7",
         "@ragx/config": "workspace:*",
-        "openai": "^4.77.3",
-        "@mistralai/mistralai": "^1.3.7"
+        "@ragx/core": "workspace:*",
+        "openai": "^4.77.3"
     },
     "devDependencies": {
         "@types/bun": "^1.1.13",
