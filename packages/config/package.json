@@ -1,0 +1,27 @@
+{
+    "name": "@ragx/config",
+    "version": "0.1.0",
+    "type": "module",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "import": "./dist/index.js",
+            "types": "./dist/index.d.ts"
+        }
+    },
+    "scripts": {
+        "build": "bun build ./src/index.ts --outdir ./dist --target bun --format esm && tsc --emitDeclarationOnly",
+        "dev": "bun --watch src/index.ts",
+        "test": "bun test",
+        "type-check": "tsc --noEmit",
+        "clean": "rm -rf dist"
+    },
+    "dependencies": {
+        "zod": "^3.24.1"
+    },
+    "devDependencies": {
+        "@types/bun": "^1.1.13",
+        "typescript": "^5.7.2"
+    }
+}
