@@ -112,7 +112,12 @@ export interface IContextBuilder {
     /**
      * Build context from query and retrieved documents
      */
-    build(query: string, documents: RetrievedDocument[], history?: Array<{ role: "user" | "assistant"; content: string }>): RAGContext;
+    build(
+        query: string,
+        documents: RetrievedDocument[],
+        maxTokens: number,
+        history?: Array<{ role: "user" | "assistant"; content: string }>,
+    ): RAGContext;
 
     /**
      * Format context into a prompt string
@@ -185,6 +190,7 @@ export interface IVectorStore {
         vector: number[],
         topK: number,
         filter?: Record<string, unknown>,
+        query?: string,
     ): Promise<Array<{ chunk: DocumentChunk; score: number }>>;
 
     /**

@@ -64,6 +64,7 @@ export class ChromaDB implements IVectorStore {
         vector: number[],
         topK: number,
         filter?: Record<string, unknown>,
+        _query?: string,
     ): Promise<Array<{ chunk: DocumentChunk; score: number }>> {
         const collection = await this.ensureCollection();
 

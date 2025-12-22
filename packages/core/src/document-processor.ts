@@ -13,6 +13,15 @@ export interface ChunkingOptions {
 }
 
 /**
+ * Calculate token count (rough approximation)
+ * In production, use a proper tokenizer like tiktoken
+ */
+export function countTokens(text: string): number {
+    // Rough approximation: 1 token ≈ 4 characters
+    return Math.ceil(text.length / 4);
+}
+
+/**
  * Document processor implementation
  */
 export class DocumentProcessor implements IDocumentProcessor {
@@ -40,6 +49,13 @@ export class DocumentProcessor implements IDocumentProcessor {
             default:
                 throw new Error(`Unknown chunking strategy: ${strategy}`);
         }
+    }
+
+    /**
+     * Calculate token count (rough approximation)
+     */
+    countTokens(text: string): number {
+        return countTokens(text);
     }
 
     /**
@@ -249,15 +265,6 @@ export class DocumentProcessor implements IDocumentProcessor {
         }
 
         return chunks;
-    }
-
-    /**
-     * Calculate token count (rough approximation)
-     * In production, use a proper tokenizer like tiktoken
-     */
-    countTokens(text: string): number {
-        // Rough approximation: 1 token ≈ 4 characters
-        return Math.ceil(text.length / 4);
     }
 
     /**

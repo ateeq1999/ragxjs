@@ -1,3 +1,4 @@
+import { countTokens } from "./document-processor";
 import type { IContextBuilder, RAGContext, RetrievedDocument } from "./interfaces";
 
 /**
@@ -17,13 +18,53 @@ Do not use any prior knowledge or make assumptions beyond what is explicitly sta
     build(
         query: string,
         documents: RetrievedDocument[],
+        maxTokens: number,
         history?: Array<{ role: "user" | "assistant"; content: string }>,
     ): RAGContext {
+        const systemPrompt = this.systemPrompt || this.defaultSystemPrompt;
+        const usedDocs: RetrievedDocument[] = [];
+        let currentTokens = 0;
+
+        // Calculate tokens for fixed parts
+        // System prompt
+        currentTokens += countTokens(`System: ${systemPrompt}\n`);
+
+        // Query + template overhead
+        currentTokens += countTokens(`User: ${query}\nAssistant:`);
+
+        // History
+        if (history && history.length > 0) {
+            const historyText = history.map(msg =>
+                `${msg.role === "user" ? "User" : "Assistant"}: ${msg.content}`
+            ).join("\n");
+            currentTokens += countTokens(`Conversation History:\n${historyText}\n`);
+        }
+
+        // Reserve space for "Context:" header and newlines
+        currentTokens += countTokens("Context:\n\n");
+
+        // Add documents until maxTokens is reached
+        for (const doc of documents) {
+            // Calculate formatting overhead per doc: "\n[N] Source: ... (Score: ...)\n"
+            // content + overhead
+            const docHeader = `\n[0] Source: ${doc.source} (Score: ${doc.score.toFixed(3)})\n`;
+            const docTokens = (doc.chunk.tokenCount || countTokens(doc.chunk.content)) + countTokens(docHeader);
+
+            if (currentTokens + docTokens <= maxTokens) {
+                usedDocs.push(doc);
+                currentTokens += docTokens;
+            } else {
+                // If we can't fit this document, we stop
+                // Alternatively we could try to fit next smaller documents, but semantic relevance is usually prioritized order
+                break;
+            }
+        }
+
         return {
             query,
-            documents,
+            documents: usedDocs,
             ...(history ? { history } : {}),
-            systemPrompt: this.systemPrompt || this.defaultSystemPrompt,
+            systemPrompt,
         };
     }
 

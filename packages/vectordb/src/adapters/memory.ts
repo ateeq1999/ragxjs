@@ -31,6 +31,7 @@ export class MemoryVectorStore implements IVectorStore {
         vector: number[],
         topK: number,
         filter?: Record<string, unknown>,
+        _query?: string,
     ): Promise<Array<{ chunk: DocumentChunk; score: number }>> {
         // Calculate cosine similarity for all vectors
         const similarities = this.vectors.map(({ vector: v, chunk }) => {

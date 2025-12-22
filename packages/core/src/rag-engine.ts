@@ -60,7 +60,10 @@ export class RAGEngine implements IRAGEngine {
         }
 
         // Step 3: Build context and format prompt
-        const context = this.contextBuilder.build(query, retrievedDocs);
+        // Step 3: Build context and format prompt
+        // Default context window to 4000 if not specified
+        const maxContextTokens = 4000;
+        const context = this.contextBuilder.build(query, retrievedDocs, maxContextTokens);
         const prompt = this.contextBuilder.formatPrompt(context);
 
         // Step 4: Generate response
@@ -123,7 +126,10 @@ export class RAGEngine implements IRAGEngine {
         }
 
         // Step 3: Build context and format prompt
-        const context = this.contextBuilder.build(query, retrievedDocs);
+        // Step 3: Build context and format prompt
+        // Default context window to 4000 if not specified
+        const maxContextTokens = 4000;
+        const context = this.contextBuilder.build(query, retrievedDocs, maxContextTokens);
         const prompt = this.contextBuilder.formatPrompt(context);
 
         // Step 4: Generate streaming response

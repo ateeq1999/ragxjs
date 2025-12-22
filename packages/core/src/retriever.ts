@@ -25,7 +25,7 @@ export class Retriever implements IRetriever {
         }
 
         // Search vector store
-        const results = await this.vectorStore.search(queryEmbedding, topK);
+        const results = await this.vectorStore.search(queryEmbedding, topK, undefined, query);
 
         // Filter by score threshold and format results
         const retrieved = results
