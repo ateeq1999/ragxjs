@@ -1,5 +1,5 @@
-import type { RagxConfig } from "./schema.ts";
-import { RagxConfigSchema } from "./schema.ts";
+import type { RagxConfig } from "./schema";
+import { RagxConfigSchema } from "./schema";
 
 /**
  * Configuration validation error

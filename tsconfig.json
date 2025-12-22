@@ -23,8 +23,8 @@
         "sourceMap": true,
         "composite": true,
         "incremental": true,
-        "allowImportingTsExtensions": true,
-        "emitDeclarationOnly": true,
+        "allowImportingTsExtensions": false,
+        "emitDeclarationOnly": false,
         "types": [
             "@types/bun"
         ]
