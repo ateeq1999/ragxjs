@@ -136,13 +136,13 @@ export class LibSQLStore implements IVectorStore {
 
     async getInfo(): Promise<{ count: number; dimensions: number }> {
         const countRes = await this.client.execute(`SELECT COUNT(*) as count FROM ${this.table}`);
-        const count = Number(countRes.rows[0].count);
+        const count = Number(countRes.rows[0]?.["count"] || 0);
 
         // Get dimensions from first row if exists
         let dimensions = 0;
         if (count > 0) {
             const firstRow = await this.client.execute(`SELECT vector FROM ${this.table} LIMIT 1`);
-            const vectorBlob = firstRow.rows[0]?.vector as ArrayBuffer;
+            const vectorBlob = firstRow.rows[0]?.["vector"] as ArrayBuffer;
             if (vectorBlob) {
                 dimensions = vectorBlob.byteLength / 4; // Float32 is 4 bytes
             }
@@ -151,15 +151,18 @@ export class LibSQLStore implements IVectorStore {
         return { count, dimensions };
     }
 
-    private cosineSimilarity(v1: Float32Array, v2: Float32Array): number {
-        let dotProduct = 0;
-        let mag1 = 0;
-        let mag2 = 0;
-        for (let i = 0; i < v1.length; i++) {
-            dotProduct += v1[i] * v2[i];
-            mag1 += v1[i] * v1[i];
-            mag2 += v2[i] * v2[i];
+    private cosineSimilarity(a: Float32Array, b: Float32Array): number {
+        let p = 0;
+        let p2 = 0;
+        let q2 = 0;
+        for (let i = 0; i < a.length; i++) {
+            const ai = a[i] ?? 0;
+            const bi = b[i] ?? 0;
+            p += ai * bi;
+            p2 += ai * ai;
+            q2 += bi * bi;
         }
-        return dotProduct / (Math.sqrt(mag1) * Math.sqrt(mag2));
+        if (p2 === 0 || q2 === 0) return 0;
+        return p / (Math.sqrt(p2) * Math.sqrt(q2));
     }
 }
