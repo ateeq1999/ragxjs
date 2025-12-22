@@ -204,6 +204,16 @@ export interface IEmbeddingProvider {
 }
 
 /**
+ * Reranker interface
+ */
+export interface IReranker {
+    /**
+     * Rerank retrieved documents based on query relevance
+     */
+    rerank(query: string, documents: DocumentChunk[], topK?: number): Promise<Array<{ index: number; score: number }>>;
+}
+
+/**
  * Vector store interface
  */
 export interface IVectorStore {

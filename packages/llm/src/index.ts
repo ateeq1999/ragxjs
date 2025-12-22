@@ -4,6 +4,8 @@ import { MistralProvider } from "./providers/mistral";
 import { OpenAIProvider } from "./providers/openai";
 import { AnthropicProvider } from "./providers/anthropic";
 import { GoogleProvider } from "./providers/google";
+import { CohereProvider } from "./providers/cohere";
+import { OllamaProvider } from "./providers/ollama";
 
 /**
  * Create LLM provider from configuration
@@ -18,6 +20,10 @@ export function createLLMProvider(config: ModelConfig, apiKey: string): ILLMProv
             return new AnthropicProvider({ apiKey, model: config.model });
         case "google":
             return new GoogleProvider({ apiKey, model: config.model });
+        case "cohere":
+            return new CohereProvider(apiKey, config.model);
+        case "ollama":
+            return new OllamaProvider(config.model);
         default:
             throw new Error(`Unsupported LLM provider: ${config.provider}`);
     }
@@ -29,3 +35,5 @@ export { OpenAIProvider } from "./providers/openai";
 export { MistralProvider } from "./providers/mistral";
 export { AnthropicProvider } from "./providers/anthropic";
 export { GoogleProvider } from "./providers/google";
+export { CohereProvider } from "./providers/cohere";
+export { OllamaProvider } from "./providers/ollama";

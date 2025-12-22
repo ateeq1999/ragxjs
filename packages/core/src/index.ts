@@ -14,6 +14,7 @@ export {
     IEmbeddingProvider,
     IMemoryManager,
     IContextBuilder,
+    IReranker,
     IRAGEngine,
     ChunkingStrategy,
     IDocumentProcessor
