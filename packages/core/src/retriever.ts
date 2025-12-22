@@ -1,4 +1,5 @@
 import type { DocumentChunk, IEmbeddingProvider, IRetriever, IVectorStore, RetrievedDocument, IReranker } from "./interfaces";
+import type { RetrievalConfig } from "@ragx/config";
 
 /**
  * Retriever implementation
@@ -8,6 +9,7 @@ export class Retriever implements IRetriever {
         private readonly vectorStore: IVectorStore,
         private readonly embeddingProvider: IEmbeddingProvider,
         private readonly reranker?: IReranker,
+        private readonly config?: RetrievalConfig,
     ) { }
 
     /**
@@ -18,18 +20,30 @@ export class Retriever implements IRetriever {
         topK = 5,
         scoreThreshold = 0.7,
     ): Promise<RetrievedDocument[]> {
-        // Generate query embedding
-        const [queryEmbedding] = await this.embeddingProvider.embed([query]);
+        const strategy = this.config?.strategy || "vector";
+        let queryEmbedding: number[] | undefined;
 
-        if (!queryEmbedding) {
-            throw new Error("Failed to generate query embedding");
+        // Generate query embedding only if needed for vector or hybrid search
+        if (strategy === "vector" || strategy === "hybrid") {
+            const embeddings = await this.embeddingProvider.embed([query]);
+            queryEmbedding = embeddings[0];
+
+            if (!queryEmbedding && strategy === "vector") {
+                throw new Error("Failed to generate query embedding for vector search");
+            }
         }
 
         // If reranking is enabled, we should fetch more candidates initially
         const initialK = this.reranker ? Math.max(topK * 4, 20) : topK;
 
         // Search vector store
-        const results = await this.vectorStore.search(queryEmbedding, initialK, undefined, query);
+        // We pass query for hybrid/keyword, and vector for vector/hybrid
+        const results = await this.vectorStore.search(
+            queryEmbedding,
+            initialK,
+            undefined,
+            (strategy === "keyword" || strategy === "hybrid") ? query : undefined
+        );
 
         if (this.reranker && results.length > 0) {
             const chunks = results.map(r => r.chunk);

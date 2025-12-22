@@ -89,6 +89,8 @@ export const EndpointsConfigSchema = z.object({
 export const QueryTransformationConfigSchema = z.object({
     rewrite: z.boolean().optional().default(false),
     expand: z.boolean().optional().default(false),
+    decompose: z.boolean().optional().default(false),
+    hyde: z.boolean().optional().default(false),
     maxExpansions: z.number().int().min(1).max(10).optional().default(3),
 });
 

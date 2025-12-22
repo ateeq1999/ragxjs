@@ -71,27 +71,17 @@ export class LibSQLStore implements IVectorStore {
     }
 
     async search(
-        vector: number[],
+        vector: number[] | undefined,
         topK: number,
         filter?: Record<string, unknown>,
-        _query?: string,
+        query?: string,
     ): Promise<Array<{ chunk: DocumentChunk; score: number }>> {
         await this.initialize();
-
-        // Note: LibSQL/SQLite doesn't have native vector search unless using extensions like 'vector'
-        // For standard LibSQL client, we might need to do manual calculation if not using Turso's vector 
-        // But for "testing" and general use, we can implement a basic cosine similarity in SQL if possible
-        // Or fetch all and filter (not recommended for production but okay for testing/small datasets)
-
-        // However, Turso/LibSQL is adding native vector support. 
-        // For now, let's implement a robust "fetch and rank" for testing purposes
-        // User explicitly said "use it for testing".
 
         let sql = `SELECT * FROM ${this.table}`;
         const args: any[] = [];
 
         if (filter && Object.keys(filter).length > 0) {
-            // Very basic filtering implementation
             const conditions = Object.entries(filter).map(([key, value]) => {
                 args.push(value);
                 return `json_extract(metadata, '$.${key}') = ?`;
@@ -101,32 +91,95 @@ export class LibSQLStore implements IVectorStore {
 
         const result = await this.client.execute({ sql, args });
 
-        const targetVector = new Float32Array(vector);
-        const matches = result.rows.map((row) => {
-            const vectorBlob = row.vector as ArrayBuffer;
-            if (!vectorBlob) return null;
+        const vectorResults: Array<{ chunk: DocumentChunk; score: number }> = [];
+        const keywordResults: Array<{ chunk: DocumentChunk; score: number }> = [];
 
-            const rowVector = new Float32Array(vectorBlob);
-            const score = this.calculateSimilarity(targetVector, rowVector);
+        const targetVector = vector ? new Float32Array(vector) : null;
+        const queryWords = query ? query.toLowerCase().split(/\s+/) : [];
 
-            return {
-                score,
-                chunk: {
-                    id: String(row.id),
-                    content: String(row.content),
-                    documentId: String(row.document_id),
-                    position: Number(row.position),
-                    tokenCount: Number(row.token_count),
-                    checksum: String(row.checksum),
-                    createdAt: new Date(String(row.created_at)),
-                    metadata: JSON.parse(String(row.metadata)),
-                },
+        for (const row of result.rows) {
+            const chunk: DocumentChunk = {
+                id: String(row.id),
+                content: String(row.content),
+                documentId: String(row.document_id),
+                position: Number(row.position),
+                tokenCount: Number(row.token_count),
+                checksum: String(row.checksum),
+                createdAt: new Date(String(row.created_at)),
+                metadata: JSON.parse(String(row.metadata)),
             };
-        }).filter((m): m is { score: number; chunk: DocumentChunk } => m !== null);
 
-        return matches
-            .sort((a, b) => b.score - a.score)
-            .slice(0, topK);
+            // Vector Score
+            if (targetVector) {
+                const vectorBlob = row.vector as ArrayBuffer;
+                if (vectorBlob) {
+                    const rowVector = new Float32Array(vectorBlob);
+                    const score = this.calculateSimilarity(targetVector, rowVector);
+                    vectorResults.push({ chunk, score });
+                }
+            }
+
+            // Keyword Score
+            if (query) {
+                const content = chunk.content.toLowerCase();
+                let matches = 0;
+                for (const word of queryWords) {
+                    if (content.includes(word)) matches++;
+                }
+                const score = matches / queryWords.length;
+                if (score > 0) {
+                    keywordResults.push({ chunk, score });
+                }
+            }
+        }
+
+        // Sort by scores
+        vectorResults.sort((a, b) => b.score - a.score);
+        keywordResults.sort((a, b) => b.score - a.score);
+
+        // Combine
+        if (vector && query) {
+            return this.reciprocalRankFusion(vectorResults, keywordResults).slice(0, topK);
+        } else if (vector) {
+            return vectorResults.slice(0, topK);
+        } else if (query) {
+            return keywordResults.slice(0, topK);
+        }
+
+        return [];
+    }
+
+    /**
+     * Reciprocal Rank Fusion (RRF)
+     */
+    private reciprocalRankFusion(
+        vectorResults: Array<{ chunk: DocumentChunk; score: number }>,
+        keywordResults: Array<{ chunk: DocumentChunk; score: number }>,
+        k = 60,
+    ): Array<{ chunk: DocumentChunk; score: number }> {
+        const scores = new Map<string, { chunk: DocumentChunk; score: number }>();
+
+        // Rank by vector score
+        vectorResults.forEach((res, index) => {
+            const rank = index + 1;
+            const rrfScore = 1 / (k + rank);
+            scores.set(res.chunk.id, { chunk: res.chunk, score: rrfScore });
+        });
+
+        // Rank by keyword score and combine
+        keywordResults.forEach((res, index) => {
+            const rank = index + 1;
+            const rrfScore = 1 / (k + rank);
+            const existing = scores.get(res.chunk.id);
+            if (existing) {
+                existing.score += rrfScore;
+            } else {
+                scores.set(res.chunk.id, { chunk: res.chunk, score: rrfScore });
+            }
+        });
+
+        return Array.from(scores.values())
+            .sort((a, b) => b.score - a.score);
     }
 
     async delete(documentIds: string[]): Promise<void> {

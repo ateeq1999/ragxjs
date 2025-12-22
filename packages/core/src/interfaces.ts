@@ -233,10 +233,10 @@ export interface IVectorStore {
     add(vectors: number[][], metadata: DocumentChunk[]): Promise<void>;
 
     /**
-     * Search for similar vectors
+     * Search for similar vectors or by keyword
      */
     search(
-        vector: number[],
+        vector: number[] | undefined,
         topK: number,
         filter?: Record<string, unknown>,
         query?: string,

@@ -39,7 +39,7 @@ export class RAGEngine implements IRAGEngine {
             overlap: 50,
             minTokens: 100,
         });
-        this.retriever = new Retriever(vectorStore, embeddingProvider, reranker);
+        this.retriever = new Retriever(vectorStore, embeddingProvider, reranker, config.retrieval);
         this.contextBuilder = new ContextBuilder();
         this.queryTransformer = new QueryTransformer(llmProvider);
         this.memoryManager = new MemoryManager(config.memory);
@@ -83,7 +83,13 @@ export class RAGEngine implements IRAGEngine {
                 searchQueries[0] || query,
                 this.config.queryTransformation.maxExpansions
             );
-            searchQueries = expanded;
+            searchQueries = Array.from(new Set([...searchQueries, ...expanded]));
+        }
+
+        if (this.config.queryTransformation?.decompose) {
+            // Decomposition breaks query into sub-questions
+            const decomposed = await this.queryTransformer.decompose(searchQueries[0] || query);
+            searchQueries = Array.from(new Set([...searchQueries, ...decomposed]));
         }
 
         // Step 2: Retrieve relevant documents (Hybrid/Multi-query)
@@ -210,7 +216,12 @@ export class RAGEngine implements IRAGEngine {
                 searchQueries[0] || query,
                 this.config.queryTransformation.maxExpansions
             );
-            searchQueries = expanded;
+            searchQueries = Array.from(new Set([...searchQueries, ...expanded]));
+        }
+
+        if (this.config.queryTransformation?.decompose) {
+            const decomposed = await this.queryTransformer.decompose(searchQueries[0] || query);
+            searchQueries = Array.from(new Set([...searchQueries, ...decomposed]));
         }
 
         // Step 2: Retrieve relevant documents (Hybrid/Multi-query)

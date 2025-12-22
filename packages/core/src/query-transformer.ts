@@ -7,6 +7,7 @@ import type { ILLMProvider } from "./interfaces";
 export interface QueryTransformerConfig {
     rewrite?: boolean;
     expand?: boolean;
+    decompose?: boolean;
     maxExpansions?: number;
 }
 
@@ -57,5 +58,32 @@ Related Questions:`;
             .filter(line => line.length > 0);
 
         return [query, ...expansions].slice(0, maxExpansions + 1); // Helper + original
+    }
+
+    /**
+     * Decompose a complex query into simpler sub-queries
+     */
+    async decompose(query: string): Promise<string[]> {
+        const prompt = `You are a helpful assistant that breaks down complex user queries into simpler, independent sub-questions.
+If a query covers multiple topics or requires several steps to answer, split it into atomic questions.
+Provide only the sub-questions, one per line. Do not number them.
+If the query is already simple, return only the original query.
+
+Original Query: "${query}"
+
+Sub-questions:`;
+
+        const response = await this.llmProvider.generate(prompt, {
+            temperature: 0.2,
+            maxTokens: 300
+        });
+
+        const subQuestions = response.content
+            .split("\n")
+            .map(line => line.trim())
+            .filter(line => line.length > 0);
+
+        // If LLM failed to provide anything, return original
+        return subQuestions.length > 0 ? subQuestions : [query];
     }
 }

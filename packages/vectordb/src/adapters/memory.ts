@@ -27,35 +27,105 @@ export class MemoryVectorStore implements IVectorStore {
     /**
      * Search for similar vectors using cosine similarity
      */
+    /**
+     * Search for similar vectors or by keyword
+     */
     async search(
-        vector: number[],
+        vector: number[] | undefined,
         topK: number,
         filter?: Record<string, unknown>,
-        _query?: string,
+        query?: string,
     ): Promise<Array<{ chunk: DocumentChunk; score: number }>> {
-        // Calculate cosine similarity for all vectors
-        const similarities = this.vectors.map(({ vector: v, chunk }) => {
-            // Apply filter if provided
-            if (filter) {
-                const matches = Object.entries(filter).every(([key, value]) => {
-                    return chunk.metadata[key] === value;
-                });
-                if (!matches) {
+        let vectorResults: Array<{ chunk: DocumentChunk; score: number }> = [];
+        let keywordResults: Array<{ chunk: DocumentChunk; score: number }> = [];
+
+        // 1. Vector Search
+        if (vector) {
+            const similarities = this.vectors.map(({ vector: v, chunk }) => {
+                if (filter && !this.matchesFilter(chunk, filter)) {
                     return { chunk, score: -1 };
                 }
-            }
+                const score = this.cosineSimilarity(vector, v);
+                return { chunk, score };
+            });
 
-            const score = this.cosineSimilarity(vector, v);
-            return { chunk, score };
+            vectorResults = similarities
+                .filter((item) => item.score >= 0)
+                .sort((a, b) => b.score - a.score);
+        }
+
+        // 2. Keyword Search
+        if (query) {
+            const words = query.toLowerCase().split(/\s+/);
+            keywordResults = this.vectors
+                .map(({ chunk }) => {
+                    if (filter && !this.matchesFilter(chunk, filter)) {
+                        return { chunk, score: -1 };
+                    }
+
+                    const content = chunk.content.toLowerCase();
+                    let matches = 0;
+                    for (const word of words) {
+                        if (content.includes(word)) matches++;
+                    }
+                    const score = matches / words.length;
+                    return { chunk, score };
+                })
+                .filter((item) => item.score > 0)
+                .sort((a, b) => b.score - a.score);
+        }
+
+        // 3. Combine results
+        if (vector && query) {
+            // Hybrid Search using Reciprocal Rank Fusion (RRF)
+            return this.reciprocalRankFusion(vectorResults, keywordResults).slice(0, topK);
+        } else if (vector) {
+            return vectorResults.slice(0, topK);
+        } else if (query) {
+            return keywordResults.slice(0, topK);
+        }
+
+        return [];
+    }
+
+    private matchesFilter(chunk: DocumentChunk, filter: Record<string, unknown>): boolean {
+        return Object.entries(filter).every(([key, value]) => {
+            return chunk.metadata[key] === value;
+        });
+    }
+
+    /**
+     * Reciprocal Rank Fusion (RRF)
+     * score = sum(1 / (k + rank))
+     */
+    private reciprocalRankFusion(
+        vectorResults: Array<{ chunk: DocumentChunk; score: number }>,
+        keywordResults: Array<{ chunk: DocumentChunk; score: number }>,
+        k = 60,
+    ): Array<{ chunk: DocumentChunk; score: number }> {
+        const scores = new Map<string, { chunk: DocumentChunk; score: number }>();
+
+        // Rank by vector score
+        vectorResults.forEach((res, index) => {
+            const rank = index + 1;
+            const rrfScore = 1 / (k + rank);
+            scores.set(res.chunk.id, { chunk: res.chunk, score: rrfScore });
         });
 
-        // Filter out non-matches and sort by score
-        const results = similarities
-            .filter((item) => item.score >= 0)
-            .sort((a, b) => b.score - a.score)
-            .slice(0, topK);
+        // Rank by keyword score and combine
+        keywordResults.forEach((res, index) => {
+            const rank = index + 1;
+            const rrfScore = 1 / (k + rank);
+            const existing = scores.get(res.chunk.id);
+            if (existing) {
+                existing.score += rrfScore;
+            } else {
+                scores.set(res.chunk.id, { chunk: res.chunk, score: rrfScore });
+            }
+        });
 
-        return results;
+        return Array.from(scores.values())
+            .sort((a, b) => b.score - a.score);
     }
 
     /**
