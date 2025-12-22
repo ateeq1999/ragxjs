@@ -4,7 +4,7 @@ import { Elysia } from "elysia";
 import type { RagxConfig } from "@ragx/config";
 import { RAGEngine } from "@ragx/core";
 import { createEmbeddingProvider } from "@ragx/embeddings";
-import { createLLMProvider } from "@ragx/llm";
+import { createLLMProvider, createReranker } from "@ragx/llm";
 import { createVectorStore } from "@ragx/vectordb";
 import { AgentRegistry } from "./registry";
 import { createChatRoutes } from "./routes/chat";
@@ -56,8 +56,18 @@ export function createServer(options: ServerOptions): Elysia {
             const embeddings = createEmbeddingProvider(agentConfig.embeddings, embeddingApiKey);
             const vectorStore = createVectorStore(agentConfig.vectorStore);
 
+            // Optional Reranker
+            let reranker: any;
+            if (agentConfig.retrieval?.rerankModel) {
+                const cohereApiKey = apiKeys["cohere"] || llmApiKey;
+                if (cohereApiKey) {
+                    reranker = createReranker(agentConfig.retrieval.rerankModel, cohereApiKey);
+                    console.log(`🔍 Enabled reranking for ${agentConfig.name} using ${agentConfig.retrieval.rerankModel}`);
+                }
+            }
+
             // Create RAG engine
-            const ragEngine = new RAGEngine(agentConfig, llm, embeddings, vectorStore);
+            const ragEngine = new RAGEngine(agentConfig, llm, embeddings, vectorStore, reranker);
 
             // Register agent
             registry.register(agentConfig.name, ragEngine);

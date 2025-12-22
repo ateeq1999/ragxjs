@@ -10,6 +10,7 @@ import type {
     RAGResponse,
     RetrievedDocument,
     ChatMessage,
+    IReranker,
 } from "./interfaces";
 import { QueryTransformer } from "./query-transformer";
 import { MemoryManager } from "./memory";
@@ -30,15 +31,15 @@ export class RAGEngine implements IRAGEngine {
         private readonly config: AgentConfig,
         private readonly llmProvider: ILLMProvider,
         private readonly embeddingProvider: IEmbeddingProvider,
-        // private readonly vectorStore: IVectorStore, // Unused in this implementation but kept if needed for future
         vectorStore: IVectorStore,
+        private readonly reranker?: IReranker,
     ) {
         this.documentProcessor = new DocumentProcessor({
             maxTokens: 500,
             overlap: 50,
             minTokens: 100,
         });
-        this.retriever = new Retriever(vectorStore, embeddingProvider);
+        this.retriever = new Retriever(vectorStore, embeddingProvider, reranker);
         this.contextBuilder = new ContextBuilder();
         this.queryTransformer = new QueryTransformer(llmProvider);
         this.memoryManager = new MemoryManager(config.memory);

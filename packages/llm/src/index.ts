@@ -1,11 +1,12 @@
 import type { ModelConfig } from "@ragx/config";
-import type { ILLMProvider } from "@ragx/core";
+import type { ILLMProvider, IReranker } from "@ragx/core";
 import { MistralProvider } from "./providers/mistral";
 import { OpenAIProvider } from "./providers/openai";
 import { AnthropicProvider } from "./providers/anthropic";
 import { GoogleProvider } from "./providers/google";
 import { CohereProvider } from "./providers/cohere";
 import { OllamaProvider } from "./providers/ollama";
+import { CohereReranker } from "./providers/cohere-reranker";
 
 /**
  * Create LLM provider from configuration
@@ -29,6 +30,14 @@ export function createLLMProvider(config: ModelConfig, apiKey: string): ILLMProv
     }
 }
 
+/**
+ * Create Reranker from configuration
+ */
+export function createReranker(model: string, apiKey: string): IReranker {
+    // Currently only Cohere is supported for reranking
+    return new CohereReranker(apiKey, model);
+}
+
 // Re-export providers
 export { BaseLLMProvider } from "./base";
 export { OpenAIProvider } from "./providers/openai";
@@ -37,3 +46,4 @@ export { AnthropicProvider } from "./providers/anthropic";
 export { GoogleProvider } from "./providers/google";
 export { CohereProvider } from "./providers/cohere";
 export { OllamaProvider } from "./providers/ollama";
+export { CohereReranker } from "./providers/cohere-reranker";

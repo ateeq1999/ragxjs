@@ -177,7 +177,7 @@ GET    /api/metrics                        # Prometheus metrics
 **Features:**
 - ✅ CRUD operations for vectors
 - ✅ Metadata filtering
-- [ ] Hybrid search support
+- ✅ Hybrid search support
 - ✅ Batch operations
 - Namespace management
 
@@ -186,7 +186,7 @@ GET    /api/metrics                        # Prometheus metrics
 ## Phase 3: Advanced Features (Weeks 7-10)
 
 ### 3.1 Advanced Retrieval
-- **Reranking**: Cohere, Cross-encoder models
+- ✅ **Reranking**: Cohere, Cross-encoder models
 - **Query Decomposition**: Break complex queries into sub-queries
 - **Hypothetical Document Embeddings (HyDE)**
 - **Parent Document Retrieval**: Retrieve full context
@@ -300,7 +300,7 @@ ragx deploy
 ### Should-Have (Phase 3)
 - ✅ Multiple LLM providers
 - ✅ Multiple vector databases
-- ✅ Reranking support
+- ✅ Reranking support (via Cohere)
 - ✅ Query transformations
 - ✅ Memory/conversation history
 - ✅ Observability (logs, metrics)
