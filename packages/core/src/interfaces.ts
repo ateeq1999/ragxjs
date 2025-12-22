@@ -210,6 +210,11 @@ export interface IContextBuilder {
      * Format context into a prompt string
      */
     formatPrompt(context: RAGContext): string;
+
+    /**
+     * Format context into a list of chat messages
+     */
+    buildMessages(context: RAGContext): ChatMessage[];
 }
 
 /**
@@ -238,7 +243,7 @@ export interface ILLMProvider {
      * Generate a response
      */
     generate(
-        prompt: string,
+        input: string | ChatMessage[],
         options?: {
             temperature?: number;
             maxTokens?: number;
@@ -250,7 +255,7 @@ export interface ILLMProvider {
      * Generate a streaming response
      */
     generateStream(
-        prompt: string,
+        input: string | ChatMessage[],
         options?: {
             temperature?: number;
             maxTokens?: number;

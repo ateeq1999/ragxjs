@@ -7,11 +7,15 @@ import type {
     ILLMProvider,
     IRAGEngine,
     IVectorStore,
+    LLMResponse,
     RAGResponse,
     RetrievedDocument,
     ChatMessage,
+    ToolCall,
     IReranker,
+    IToolRegistry,
 } from "./interfaces";
+import { ToolRegistry } from "./tool-registry";
 import { QueryTransformer } from "./query-transformer";
 import { MemoryManager } from "./memory";
 import { Retriever } from "./retriever";
@@ -29,6 +33,7 @@ export class RAGEngine implements IRAGEngine {
     private readonly queryTransformer: QueryTransformer;
     private readonly memoryManager: MemoryManager;
     private readonly docStore?: IDocumentStore;
+    private readonly toolRegistry: IToolRegistry;
 
     constructor(
         private readonly config: AgentConfig,
@@ -36,7 +41,9 @@ export class RAGEngine implements IRAGEngine {
         private readonly embeddingProvider: IEmbeddingProvider,
         vectorStore: IVectorStore,
         private readonly reranker?: IReranker,
+        toolRegistry?: IToolRegistry,
     ) {
+        this.toolRegistry = toolRegistry || new ToolRegistry();
         this.documentProcessor = new DocumentProcessor({
             maxTokens: 500,
             overlap: 50,
@@ -147,24 +154,61 @@ export class RAGEngine implements IRAGEngine {
             };
         }
 
-        // Step 3: Build context and format prompt
-        // Step 3: Build context and format prompt
-        // Default context window to 4000 if not specified
+        // Step 3: Build context
         const maxContextTokens = 4000;
         const context = this.contextBuilder.build(query, retrievedDocs, maxContextTokens, history);
-        const prompt = this.contextBuilder.formatPrompt(context);
+        let messages = this.contextBuilder.buildMessages(context);
 
-        // Step 4: Generate response
-        const response = await this.llmProvider.generate(prompt, {
-            temperature,
-            ...(this.config.model.maxTokens ? { maxTokens: this.config.model.maxTokens } : {}),
-        });
+        // Stage 4: Execution Loop (Tool Calling)
+        let iteration = 0;
+        const maxIterations = 5;
+        let lastResponse: LLMResponse | undefined;
 
-        // Step 5: Verify grounding
-        const isGrounded = this.contextBuilder.verifyGrounding(response.content, context);
+        while (iteration < maxIterations) {
+            lastResponse = await this.llmProvider.generate(messages, {
+                temperature,
+                tools: this.toolRegistry.getAllTools(),
+                ...(this.config.model.maxTokens ? { maxTokens: this.config.model.maxTokens } : {}),
+            });
+
+            if (!lastResponse.toolCalls || lastResponse.toolCalls.length === 0) {
+                break;
+            }
+
+            // Add model's choice to messages
+            messages.push({
+                role: "assistant",
+                content: lastResponse.content,
+                timestamp: new Date(),
+                toolCalls: lastResponse.toolCalls,
+            });
+
+            // Execute all requested tools
+            const toolPromises = lastResponse.toolCalls.map(async (call: ToolCall) => {
+                const result = await this.toolRegistry.executeTool(call.name, call.arguments);
+                return {
+                    role: "tool" as const,
+                    content: typeof result === "string" ? result : JSON.stringify(result),
+                    timestamp: new Date(),
+                    toolCallId: call.id,
+                };
+            });
+
+            const toolResults = await Promise.all(toolPromises);
+            messages.push(...toolResults);
+
+            iteration++;
+        }
+
+        if (!lastResponse) {
+            throw new Error("Failed to generate response from LLM");
+        }
+
+        // Step 5: Verify grounding on final content
+        const isGrounded = this.contextBuilder.verifyGrounding(lastResponse.content, context);
 
         // Step 6: Return INSUFFICIENT_CONTEXT if not grounded
-        if (!isGrounded) {
+        if (!isGrounded && lastResponse.content !== "INSUFFICIENT_CONTEXT") {
             return {
                 answer: "INSUFFICIENT_CONTEXT",
                 sources: retrievedDocs.map((doc) => ({
@@ -173,12 +217,12 @@ export class RAGEngine implements IRAGEngine {
                     score: doc.score,
                 })),
                 contextSufficient: false,
-                ...(response.usage ? { usage: response.usage } : {}),
+                ...(lastResponse.usage ? { usage: lastResponse.usage } : {}),
             };
         }
 
         // Step 7: Save to memory
-        if (sessionId && isGrounded) {
+        if (sessionId) {
             await this.memoryManager.addMessage(sessionId, {
                 role: "user",
                 content: query,
@@ -186,20 +230,20 @@ export class RAGEngine implements IRAGEngine {
             });
             await this.memoryManager.addMessage(sessionId, {
                 role: "assistant",
-                content: response.content,
+                content: lastResponse.content,
                 timestamp: new Date(),
             });
         }
 
         return {
-            answer: response.content,
+            answer: lastResponse.content,
             sources: retrievedDocs.map((doc) => ({
                 content: doc.chunk.content,
                 source: doc.source,
                 score: doc.score,
             })),
             contextSufficient: true,
-            ...(response.usage ? { usage: response.usage } : {}),
+            ...(lastResponse.usage ? { usage: lastResponse.usage } : {}),
         };
     }
 
@@ -277,16 +321,60 @@ export class RAGEngine implements IRAGEngine {
             };
         }
 
-        // Step 3: Build context and format prompt
-        // Step 3: Build context and format prompt
-        // Default context window to 4000 if not specified
+        // Step 3: Build context
         const maxContextTokens = 4000;
         const context = this.contextBuilder.build(query, retrievedDocs, maxContextTokens, history);
-        const prompt = this.contextBuilder.formatPrompt(context);
+        let messages = this.contextBuilder.buildMessages(context);
 
-        // Step 4: Generate streaming response
+        // Stage 4: Execution Loop (Tool Calling)
+        let iteration = 0;
+        const maxIterations = 5;
+        let lastResponse: LLMResponse | undefined;
+
+        while (iteration < maxIterations) {
+            lastResponse = await this.llmProvider.generate(messages, {
+                temperature,
+                tools: this.toolRegistry.getAllTools(),
+                ...(this.config.model.maxTokens ? { maxTokens: this.config.model.maxTokens } : {}),
+            });
+
+            if (!lastResponse.toolCalls || lastResponse.toolCalls.length === 0) {
+                break;
+            }
+
+            // Yield a status if possible? For now we just process.
+            // Add model's choice to messages
+            messages.push({
+                role: "assistant",
+                content: lastResponse.content,
+                timestamp: new Date(),
+                toolCalls: lastResponse.toolCalls,
+            });
+
+            // Execute all requested tools
+            const toolPromises = lastResponse.toolCalls.map(async (call: ToolCall) => {
+                const result = await this.toolRegistry.executeTool(call.name, call.arguments);
+                return {
+                    role: "tool" as const,
+                    content: typeof result === "string" ? result : JSON.stringify(result),
+                    timestamp: new Date(),
+                    toolCallId: call.id,
+                };
+            });
+
+            const toolResults = await Promise.all(toolPromises);
+            messages.push(...toolResults);
+
+            iteration++;
+        }
+
+        if (!lastResponse) {
+            throw new Error("Failed to generate response from LLM");
+        }
+
+        // Step 5: Final Streaming Generation
         let fullResponse = "";
-        for await (const chunk of this.llmProvider.generateStream(prompt, {
+        for await (const chunk of this.llmProvider.generateStream(messages, {
             temperature,
             ...(this.config.model.maxTokens ? { maxTokens: this.config.model.maxTokens } : {}),
         })) {
@@ -294,11 +382,11 @@ export class RAGEngine implements IRAGEngine {
             yield chunk;
         }
 
-        // Step 5: Verify grounding
+        // Step 6: Verify grounding
         const isGrounded = this.contextBuilder.verifyGrounding(fullResponse, context);
 
-        // Step 6: Save to memory
-        if (sessionId && isGrounded) {
+        // Step 7: Save to memory
+        if (sessionId) {
             await this.memoryManager.addMessage(sessionId, {
                 role: "user",
                 content: query,

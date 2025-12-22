@@ -106,6 +106,49 @@ Do not use any prior knowledge or make assumptions beyond what is explicitly sta
     }
 
     /**
+     * Format context into a list of chat messages
+     */
+    buildMessages(context: RAGContext): ChatMessage[] {
+        const messages: ChatMessage[] = [];
+
+        // Add system prompt
+        if (context.systemPrompt) {
+            messages.push({
+                role: "system",
+                content: context.systemPrompt,
+                timestamp: new Date(),
+            });
+        }
+
+        // Add retrieved context as a system message
+        if (context.documents.length > 0) {
+            const contextContent = context.documents.map((doc, index) =>
+                `[${index + 1}] Source: ${doc.source} (Score: ${doc.score.toFixed(3)})\n${doc.chunk.content}`
+            ).join("\n\n");
+
+            messages.push({
+                role: "system",
+                content: `Here are the relevant context documents to help you answer the user's question:\n\n${contextContent}`,
+                timestamp: new Date(),
+            });
+        }
+
+        // Add history
+        if (context.history && context.history.length > 0) {
+            messages.push(...context.history);
+        }
+
+        // Add query
+        messages.push({
+            role: "user",
+            content: context.query,
+            timestamp: new Date(),
+        });
+
+        return messages;
+    }
+
+    /**
      * Verify that the response is grounded in the context
      * Returns true if grounded, false otherwise
      */

@@ -195,7 +195,10 @@ GET    /api/metrics                        # Prometheus metrics
 - **Contextual Compression**: Remove irrelevant parts
 
 ### 3.2 Agent Capabilities
-- **Tool/Function Calling**: Allow agents to use external tools
+- ✅ **Tool/Function Calling**: Multi-turn tool-use orchestration
+    - Specialized `ToolRegistry` for dynamic tool discovery
+    - Recursive execution loop (max 5 turns) in `RAGEngine`
+    - Full support for tool results and conversational continuity
 - **Multi-step Reasoning**: Chain-of-thought prompting
 - **Memory Systems**: ✅ Short-term and long-term memory
 - **Agent Collaboration**: Multi-agent workflows
