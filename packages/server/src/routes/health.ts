@@ -1,5 +1,5 @@
 import { Elysia } from "elysia";
-import type { AgentRegistry } from "../registry.ts";
+import type { AgentRegistry } from "../registry";
 
 /**
  * Health check response

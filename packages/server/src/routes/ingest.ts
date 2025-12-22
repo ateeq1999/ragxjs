@@ -1,6 +1,6 @@
 import { Elysia, type Context } from "elysia";
 import type { Document } from "@ragx/core";
-import type { AgentRegistry } from "../registry.ts";
+import type { AgentRegistry } from "../registry";
 
 /**
  * Ingest request body

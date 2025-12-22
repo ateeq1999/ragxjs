@@ -1,5 +1,5 @@
 import { Elysia, type Context } from "elysia";
-import type { AgentRegistry } from "../registry.ts";
+import type { AgentRegistry } from "../registry";
 
 /**
  * Search request query parameters
@@ -17,7 +17,7 @@ export function createSearchRoutes(registry: AgentRegistry) {
     return new Elysia({ prefix: "/api/agents" })
         .get("/:agentName/search", async ({ params, query, set }: Context) => {
             const { agentName } = params as { agentName: string };
-            const searchQuery = query as SearchQuery;
+            const searchQuery = query as unknown as SearchQuery;
 
             // Get agent from registry
             const agent = registry.get(agentName);
@@ -43,6 +43,7 @@ export function createSearchRoutes(registry: AgentRegistry) {
                 const scoreThreshold = searchQuery.scoreThreshold
                     ? Number.parseFloat(searchQuery.scoreThreshold)
                     : 0.7;
+                console.log(`Searching with threshold: ${scoreThreshold}`);
 
                 // Use the query method but only return sources
                 const response = await agent.query(searchQuery.query, { topK });

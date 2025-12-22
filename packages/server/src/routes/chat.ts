@@ -1,5 +1,5 @@
 import { Elysia, type Context } from "elysia";
-import type { AgentRegistry } from "../registry.ts";
+import type { AgentRegistry } from "../registry";
 
 /**
  * Chat request body
