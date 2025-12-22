@@ -70,12 +70,12 @@ export class ChromaDB implements IVectorStore {
         const results = await collection.query({
             queryEmbeddings: [vector],
             nResults: topK,
-            where: filter,
+            where: filter as any,
         });
 
         const chunks: Array<{ chunk: DocumentChunk; score: number }> = [];
 
-        if (results.ids[0] && results.documents[0] && results.metadatas[0] && results.distances[0]) {
+        if (results.ids[0] && results.documents[0] && results.metadatas[0] && results.distances && results.distances[0]) {
             for (let i = 0; i < results.ids[0].length; i++) {
                 const id = results.ids[0][i];
                 const document = results.documents[0][i];

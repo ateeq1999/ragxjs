@@ -19,6 +19,7 @@
     },
     "dependencies": {
         "@ragx/core": "workspace:*",
+        "@ragx/config": "workspace:*",
         "chromadb": "^1.9.2"
     },
     "devDependencies": {

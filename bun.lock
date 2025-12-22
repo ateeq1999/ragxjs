@@ -81,6 +81,7 @@
       "name": "@ragx/vectordb",
       "version": "0.1.0",
       "dependencies": {
+        "@ragx/config": "workspace:*",
         "@ragx/core": "workspace:*",
         "chromadb": "^1.9.2",
       },
