@@ -67,8 +67,8 @@ export function createChatRoutes(registry: AgentRegistry) {
                     // Create async generator for streaming
                     const stream = async function* () {
                         const generator = agent.queryStream(request.message, {
-                            topK: request.topK,
-                            temperature: request.temperature,
+                            ...(request.topK ? { topK: request.topK } : {}),
+                            ...(request.temperature ? { temperature: request.temperature } : {}),
                         });
 
                         for await (const chunk of generator) {
@@ -76,7 +76,7 @@ export function createChatRoutes(registry: AgentRegistry) {
                         }
 
                         // Send final response
-                        const result = await generator.return(undefined);
+                        const result = await generator.return({ content: "", model: "" } as any);
                         if (result.value) {
                             yield `data: ${JSON.stringify({ done: true, response: result.value })}\n\n`;
                         }
@@ -87,8 +87,8 @@ export function createChatRoutes(registry: AgentRegistry) {
 
                 // Non-streaming response
                 const response = await agent.query(request.message, {
-                    topK: request.topK,
-                    temperature: request.temperature,
+                    ...(request.topK ? { topK: request.topK } : {}),
+                    ...(request.temperature ? { temperature: request.temperature } : {}),
                 });
 
                 return response as ChatResponse;

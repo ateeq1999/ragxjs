@@ -1,4 +1,3 @@
-import type { RagxConfig } from "@ragx/config";
 import type { RAGEngine } from "@ragx/core";
 
 /**

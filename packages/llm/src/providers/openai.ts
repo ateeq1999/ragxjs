@@ -26,8 +26,8 @@ export class OpenAIProvider extends BaseLLMProvider {
             const completion = await this.client.chat.completions.create({
                 model: this.model,
                 messages: [{ role: "user", content: prompt }],
-                temperature: options?.temperature ?? 0.7,
-                max_tokens: options?.maxTokens,
+                ...(options?.temperature !== undefined ? { temperature: options.temperature } : { temperature: 0.7 }),
+                ...(options?.maxTokens ? { max_tokens: options.maxTokens } : {}),
             });
 
             const choice = completion.choices[0];

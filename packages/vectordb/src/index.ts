@@ -13,8 +13,8 @@ export function createVectorStore(config: VectorStoreConfig): IVectorStore {
                 throw new Error("ChromaDB requires a collection name");
             }
             return new ChromaDB({
-                url: config.url,
-                collectionName: config.collection,
+                ...(config.url ? { url: config.url } : {}),
+                collectionName: config.collection as string,
             });
         case "memory":
             return new MemoryVectorStore();
