@@ -218,6 +218,16 @@ export interface IContextBuilder {
 }
 
 /**
+ * Contextual compressor interface
+ */
+export interface ICompressor {
+    /**
+     * Compress retrieved documents based on query
+     */
+    compress(query: string, documents: RetrievedDocument[]): Promise<RetrievedDocument[]>;
+}
+
+/**
  * LLM response
  */
 export interface LLMResponse {

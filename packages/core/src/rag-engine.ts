@@ -20,7 +20,8 @@ import { QueryTransformer } from "./query-transformer";
 import { MemoryManager } from "./memory";
 import { Retriever } from "./retriever";
 import { MemoryDocumentStore } from "./document-store";
-import type { IDocumentStore } from "./interfaces";
+import { LLMCompressor, EmbeddingsCompressor } from "./compressor";
+import type { IDocumentStore, ICompressor } from "./interfaces";
 
 /**
  * RAG Engine implementation
@@ -34,6 +35,7 @@ export class RAGEngine implements IRAGEngine {
     private readonly memoryManager: MemoryManager;
     private readonly docStore?: IDocumentStore;
     private readonly toolRegistry: IToolRegistry;
+    private readonly compressor?: ICompressor;
 
     constructor(
         private readonly config: AgentConfig,
@@ -64,6 +66,19 @@ export class RAGEngine implements IRAGEngine {
         this.contextBuilder = new ContextBuilder();
         this.queryTransformer = new QueryTransformer(llmProvider);
         this.memoryManager = new MemoryManager(config.memory);
+
+        if (config.retrieval?.compression?.enabled) {
+            const compression = config.retrieval.compression;
+            if (compression.strategy === "llm") {
+                this.compressor = new LLMCompressor(this.llmProvider, {
+                    maxTokensPerDoc: compression.maxTokensPerDoc,
+                });
+            } else {
+                this.compressor = new EmbeddingsCompressor(this.embeddingProvider, {
+                    maxTokensPerDoc: compression.maxTokensPerDoc,
+                });
+            }
+        }
     }
 
     /**
@@ -143,7 +158,12 @@ export class RAGEngine implements IRAGEngine {
         // But since scores across different queries might not be comparable without advanced fusion (RRF),
         // we'll stick to a simple deduplication and keeping high variance.
         // Let's enforce topK limit globally for the context builder to avoid flooding
-        const retrievedDocs = allDocs.sort((a, b) => b.score - a.score).slice(0, topK * 2);
+        let retrievedDocs = allDocs.sort((a, b) => b.score - a.score).slice(0, topK * 2);
+
+        // Step 2.1: Contextual Compression
+        if (this.compressor) {
+            retrievedDocs = await this.compressor.compress(query, retrievedDocs);
+        }
 
         // Step 2: Check if we have sufficient context
         if (retrievedDocs.length === 0) {
@@ -309,7 +329,12 @@ export class RAGEngine implements IRAGEngine {
             }
         }
 
-        const retrievedDocs = allDocs.sort((a, b) => b.score - a.score).slice(0, topK * 2);
+        let retrievedDocs = allDocs.sort((a, b) => b.score - a.score).slice(0, topK * 2);
+
+        // Step 2.1: Contextual Compression
+        if (this.compressor) {
+            retrievedDocs = await this.compressor.compress(query, retrievedDocs);
+        }
 
         // Step 2: Check if we have sufficient context
         if (retrievedDocs.length === 0) {

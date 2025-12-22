@@ -46,6 +46,15 @@ export const VectorStoreConfigSchema = z.object({
 });
 
 /**
+ * Compression configuration schema
+ */
+export const CompressionConfigSchema = z.object({
+    enabled: z.boolean().optional().default(false),
+    strategy: z.enum(["llm", "embeddings"]).optional().default("embeddings"),
+    maxTokensPerDoc: z.number().int().positive().optional(),
+});
+
+/**
  * Retrieval configuration schema
  */
 export const RetrievalConfigSchema = z.object({
@@ -56,6 +65,7 @@ export const RetrievalConfigSchema = z.object({
     rerank: z.boolean().optional().default(false),
     rerankModel: z.string().optional(),
     multiQuery: z.boolean().optional().default(false),
+    compression: CompressionConfigSchema.optional(),
 });
 
 /**
