@@ -23,7 +23,7 @@ export interface ServerOptions {
 /**
  * Create RAGX server from configuration
  */
-export function createServer(options: ServerOptions) {
+export function createServer(options: ServerOptions): Elysia {
     const { config, apiKeys } = options;
     const registry = new AgentRegistry();
     const startTime = Date.now();
@@ -134,7 +134,7 @@ export function createServer(options: ServerOptions) {
 /**
  * Start RAGX server
  */
-export async function startServer(options: ServerOptions) {
+export async function startServer(options: ServerOptions): Promise<Elysia> {
     const app = createServer(options);
     const port = options.config.server?.port || 3000;
     const host = options.config.server?.host || "0.0.0.0";

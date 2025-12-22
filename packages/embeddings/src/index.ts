@@ -13,15 +13,15 @@ export function createEmbeddingProvider(
     switch (config.provider) {
         case "openai":
             return new OpenAIEmbeddings(apiKey, {
-                model: config.model,
-                dimensions: config.dimensions,
-                batchSize: config.batchSize,
+                ...(config.model ? { model: config.model } : {}),
+                ...(config.dimensions ? { dimensions: config.dimensions } : {}),
+                ...(config.batchSize ? { batchSize: config.batchSize } : {}),
             });
         case "mistral":
             return new MistralEmbeddings(apiKey, {
-                model: config.model,
-                dimensions: config.dimensions,
-                batchSize: config.batchSize,
+                ...(config.model ? { model: config.model } : {}),
+                ...(config.dimensions ? { dimensions: config.dimensions } : {}),
+                ...(config.batchSize ? { batchSize: config.batchSize } : {}),
             });
         default:
             throw new Error(`Unsupported embedding provider: ${config.provider}`);
