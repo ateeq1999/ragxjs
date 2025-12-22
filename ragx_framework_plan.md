@@ -191,8 +191,8 @@ GET    /api/metrics                        # Prometheus metrics
 - ✅ **Query Decomposition**: Break complex queries into sub-queries
 - ✅ **Hypothetical Document Embeddings (HyDE)**: Answer-based retrieval
 - ✅ **Parent Document Retrieval**: Retrieve full context (DocStore)
-- **Multi-query Retrieval**: ✅ Generate multiple query variations
-- **Contextual Compression**: Remove irrelevant parts
+- ✅ **Multi-query Retrieval**: Generate multiple query variations
+- ✅ **Contextual Compression**: Remove irrelevant parts
 
 ### 3.2 Agent Capabilities
 - ✅ **Tool/Function Calling**: Multi-turn tool-use orchestration
@@ -225,7 +225,7 @@ GET    /api/metrics                        # Prometheus metrics
 ### 4.1 CLI Tool (`packages/cli`) [/]
 - ✅ Project initialization (`ragx init`)
 - ✅ Dev server management (`ragx dev`)
-- [/] Bulk ingestion tool (`ragx ingest`)
+- ✅ Bulk ingestion tool (`ragx ingest`)
 - [ ] Agent testing suite (`ragx test`)
 
 ```bash

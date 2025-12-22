@@ -344,7 +344,12 @@ export interface RAGResponse {
         promptTokens: number;
         completionTokens: number;
         totalTokens: number;
-    };
+    } | undefined;
+    /** Estimated cost */
+    cost?: {
+        amount: number;
+        currency: string;
+    } | undefined;
 }
 
 /**
