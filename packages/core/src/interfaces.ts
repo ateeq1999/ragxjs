@@ -100,7 +100,7 @@ export interface RAGContext {
     /** Retrieved documents */
     documents: RetrievedDocument[];
     /** Conversation history (optional) */
-    history?: Array<{ role: "user" | "assistant"; content: string }>;
+    history?: ChatMessage[];
     /** System prompt (optional) */
     systemPrompt?: string;
 }
@@ -145,7 +145,7 @@ export interface IContextBuilder {
         query: string,
         documents: RetrievedDocument[],
         maxTokens: number,
-        history?: Array<{ role: "user" | "assistant"; content: string }>,
+        history?: ChatMessage[],
     ): RAGContext;
 
     /**

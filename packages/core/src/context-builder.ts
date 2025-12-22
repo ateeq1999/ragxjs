@@ -1,5 +1,5 @@
 import { countTokens } from "./document-processor";
-import type { IContextBuilder, RAGContext, RetrievedDocument } from "./interfaces";
+import type { IContextBuilder, RAGContext, RetrievedDocument, ChatMessage } from "./interfaces";
 
 /**
  * Context builder implementation
@@ -19,7 +19,7 @@ Do not use any prior knowledge or make assumptions beyond what is explicitly sta
         query: string,
         documents: RetrievedDocument[],
         maxTokens: number,
-        history?: Array<{ role: "user" | "assistant"; content: string }>,
+        history?: ChatMessage[],
     ): RAGContext {
         const systemPrompt = this.systemPrompt || this.defaultSystemPrompt;
         const usedDocs: RetrievedDocument[] = [];
