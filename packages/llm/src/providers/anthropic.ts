@@ -26,7 +26,7 @@ export class AnthropicProvider implements ILLMProvider {
 
         // The content block type needs to be checked, usually it's text
         const contentBlock = response.content[0];
-        const text = contentBlock.type === "text" ? contentBlock.text : "";
+        const text = contentBlock?.type === "text" ? contentBlock.text : "";
 
         return {
             content: text,
