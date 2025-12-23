@@ -27,7 +27,7 @@ export function createEmbeddingProvider(
         case "cohere":
             return new CohereEmbeddings({
                 apiKey,
-                model: config.model || undefined,
+                model: config.model || "no key",
             });
         default:
             throw new Error(`Unsupported embedding provider: ${config.provider}`);
