@@ -13,7 +13,7 @@ import { countTokens } from "./document-processor";
 export class LLMCompressor implements ICompressor {
     constructor(
         private readonly llmProvider: ILLMProvider,
-        private readonly options: { maxTokensPerDoc?: number } = {}
+        private readonly options: { maxTokensPerDoc?: number | undefined } = {}
     ) { }
 
     async compress(query: string, documents: RetrievedDocument[]): Promise<RetrievedDocument[]> {
@@ -69,7 +69,7 @@ Relevant Snippets:`;
 export class EmbeddingsCompressor implements ICompressor {
     constructor(
         private readonly embeddingProvider: IEmbeddingProvider,
-        private readonly options: { maxTokensPerDoc?: number } = {}
+        private readonly options: { maxTokensPerDoc?: number | undefined } = {}
     ) { }
 
     async compress(query: string, documents: RetrievedDocument[]): Promise<RetrievedDocument[]> {
